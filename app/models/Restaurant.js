@@ -12,18 +12,20 @@ const restaurantSchema = new mongoose.Schema(
     businessNumber: { type: String, required: true },
     operatingHours: { type: String, required: true },
     tables: { type: Number, required: true },
+    // 추가: orders 필드로 Order 모델과의 관계 설정
+    orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
+    // 추가: 메뉴 아이템 필드
+    menuItems: [{ type: mongoose.Schema.Types.ObjectId, ref: "MenuItem" }],
   },
-  { collection: "restaurants" }
-); // 여기서 컬렉션 이름을 지정합니다.
+  { timestamps: true }
+);
 
-// 비밀번호 암호화 전후 처리
 restaurantSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// 비밀번호 비교 메서드
 restaurantSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };

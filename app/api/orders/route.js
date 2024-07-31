@@ -65,6 +65,10 @@ export async function PATCH(req) {
   try {
     await dbConnect();
     const { orderId, status } = await req.json();
+    // 수정: 주문 상태 업데이트 시 유효성 검사 추가
+    if (!["pending", "preparing", "completed", "canceled"].includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
       { status },

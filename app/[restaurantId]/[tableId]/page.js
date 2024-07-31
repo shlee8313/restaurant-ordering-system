@@ -33,9 +33,9 @@ export default function MenuPage() {
 
         const menuData = await menuResponse.json();
         const restaurantData = await restaurantResponse.json();
-
-        if (menuData.menu) {
-          setMenu(menuData.menu);
+        console.log(menuData);
+        if (menuData.categories) {
+          setMenu(menuData.categories);
         } else {
           console.error("Menu data is missing.");
         }

@@ -1,21 +1,26 @@
 import mongoose from "mongoose";
 
+// MenuItemSchema with custom id field
 const MenuItemSchema = new mongoose.Schema({
-  id: { type: String, required: true },
+  id: { type: String, required: true, unique: true }, // Custom ID field
   name: { type: String, required: true },
-  description: { type: String, required: true },
+  description: { type: String },
   price: { type: Number, required: true },
-  image: { type: String, required: true },
+  image: { type: String },
 });
 
+// MenuSchema with dynamic categories
 const MenuSchema = new mongoose.Schema(
   {
     restaurantId: { type: String, required: true, unique: true },
-    음식: [MenuItemSchema],
-    음료: [MenuItemSchema],
-    주류: [MenuItemSchema],
+    categories: [
+      {
+        name: { type: String, required: true },
+        items: [MenuItemSchema],
+      },
+    ],
   },
-  { collection: "menus" }
-); // 컬렉션 이름을 'menus'로 변경
+  { timestamps: true }
+);
 
 export default mongoose.models.Menu || mongoose.model("Menu", MenuSchema);

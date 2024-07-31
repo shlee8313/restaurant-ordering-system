@@ -22,7 +22,7 @@ const SideNav = () => {
             className="block p-2 hover:bg-blue-200 rounded"
             onClick={() => {
               handleNavClick("주문내역");
-              toggleEditMode();
+              isEditMode && toggleEditMode();
             }}
           >
             주문내역
@@ -34,7 +34,7 @@ const SideNav = () => {
             className="block p-2 hover:bg-blue-200 rounded"
             onClick={() => {
               handleNavClick("매출내역");
-              toggleEditMode();
+              isEditMode && toggleEditMode();
             }}
           >
             매출내역
@@ -46,7 +46,7 @@ const SideNav = () => {
             className="w-full text-left p-2 hover:bg-blue-200 rounded"
             onClick={() => {
               handleNavClick("결제내역");
-              toggleEditMode();
+              isEditMode && toggleEditMode();
             }}
           >
             결제내역
@@ -54,11 +54,11 @@ const SideNav = () => {
         </li>
         <li>
           <Link
-            href=""
+            href="/admin/edit_menu"
             className="w-full text-left p-2 hover:bg-blue-200 rounded"
             onClick={() => {
               handleNavClick("메뉴관리");
-              toggleEditMode();
+              isEditMode && toggleEditMode();
             }}
           >
             메뉴관리
@@ -84,7 +84,7 @@ const SideNav = () => {
             className="w-full text-left p-2 hover:bg-blue-200 rounded"
             onClick={() => {
               handleNavClick("내정보");
-              toggleEditMode();
+              isEditMode && toggleEditMode();
             }}
           >
             내 정보

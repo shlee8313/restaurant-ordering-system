@@ -55,17 +55,18 @@ export default function Cart({ items, updateItem, removeItem, placeOrder, isMobi
               <CartContent />
             </div>
             <div className="border-t p-4">
-              {items.length === 0 && (
+              {items.length === 0 ? (
                 <button className="w-full bg-blue-200 text-white py-3 rounded-lg text-lg font-semibold">
                   주문하기
                 </button>
+              ) : (
+                <button
+                  onClick={placeOrder}
+                  className="w-full bg-blue-500 text-white py-3 rounded-lg text-lg font-semibold"
+                >
+                  주문하기
+                </button>
               )}
-              <button
-                onClick={placeOrder}
-                className="w-full bg-blue-500 text-white py-3 rounded-lg text-lg font-semibold"
-              >
-                주문하기
-              </button>
             </div>
           </div>
         )}
@@ -77,9 +78,15 @@ export default function Cart({ items, updateItem, removeItem, placeOrder, isMobi
     <div className="bg-gray-100 p-4 rounded-lg">
       <h2 className="text-xl font-bold mb-4">장바구니</h2>
       <CartContent />
-      <button onClick={placeOrder} className="w-full bg-blue-500 text-white py-2 rounded mt-4">
-        주문하기
-      </button>
+      {items.length === 0 ? (
+        <button className="w-full bg-blue-200 text-white py-3 rounded-lg text-lg font-semibold">
+          주문하기
+        </button>
+      ) : (
+        <button onClick={placeOrder} className="w-full bg-blue-500 text-white py-2 rounded mt-4">
+          주문하기
+        </button>
+      )}
     </div>
   );
 }

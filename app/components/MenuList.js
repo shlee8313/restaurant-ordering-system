@@ -8,7 +8,7 @@ export default function MenuList({ menu, addToCart, freeOrder, isMobile }) {
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    const menuCategories = Object.keys(menu);
+    const menuCategories = menu.map((category) => category.name);
     setCategories(menuCategories);
     if (menuCategories.length > 0) {
       setActiveCategory(menuCategories[0]);
@@ -37,45 +37,46 @@ export default function MenuList({ menu, addToCart, freeOrder, isMobile }) {
       <div className={isMobile ? "w-full" : "w-3/4"}>
         <div className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4`}>
           {activeCategory &&
-            menu[activeCategory] &&
-            menu[activeCategory].map((item) => (
-              <div
-                key={item.id}
-                className="border p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="relative w-full h-32 mb-2">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    layout="fill"
-                    objectFit="cover"
-                    className="rounded-md"
-                  />
+            menu
+              .find((category) => category.name === activeCategory)
+              ?.items.map((item) => (
+                <div
+                  key={item.name}
+                  className="border p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="relative w-full h-32 mb-2">
+                    <Image
+                      src={item.image}
+                      alt={item.name}
+                      layout="fill"
+                      objectFit="cover"
+                      className="rounded-md"
+                    />
+                  </div>
+                  <h3 className="text-lg font-bold">{item.name}</h3>
+                  <p className="text-sm text-gray-600 mb-2">{item.description}</p>
+                  {item.price ? (
+                    <p className="text-green-600 font-semibold">{item.price.toLocaleString()}원</p>
+                  ) : (
+                    <p className="text-green-600 font-semibold">무료 서비스</p>
+                  )}
+                  {activeCategory === "호출" ? (
+                    <button
+                      className="mt-2 w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+                      onClick={() => freeOrder(item)}
+                    >
+                      바로 주문하기
+                    </button>
+                  ) : (
+                    <button
+                      className="mt-2 w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                      onClick={() => addToCart(item)}
+                    >
+                      장바구니에 추가
+                    </button>
+                  )}
                 </div>
-                <h3 className="text-lg font-bold">{item.name}</h3>
-                <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                {item.price ? (
-                  <p className="text-green-600 font-semibold">{item.price.toLocaleString()}원</p>
-                ) : (
-                  <p className="text-green-600 font-semibold">무료 서비스</p>
-                )}
-                {activeCategory === "호출" ? (
-                  <button
-                    className="mt-2 w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
-                    onClick={() => freeOrder(item)}
-                  >
-                    바로 주문하기
-                  </button>
-                ) : (
-                  <button
-                    className="mt-2 w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-                    onClick={() => addToCart(item)}
-                  >
-                    장바구니에 추가
-                  </button>
-                )}
-              </div>
-            ))}
+              ))}
         </div>
       </div>
     </div>

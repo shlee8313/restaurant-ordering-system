@@ -1,31 +1,27 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const OrderSchema = new mongoose.Schema(
   {
-    restaurantId: { type: String, ref: "restaurants", required: true },
+    restaurantId: { type: String, required: true },
     tableId: { type: String, required: true },
     items: [
       {
-        name: { type: String, required: true },
-        price: { type: Number, default: 0 }, // price를 필수가 아니게 하고 기본값을 0으로 설정
+        // 수정: menuItem을 참조하도록 변경
+        menuItem: { type: mongoose.Schema.Types.ObjectId, ref: "MenuItem", required: true },
         quantity: { type: Number, required: true },
       },
     ],
     status: {
       type: String,
-      enum: ["pending", "completed", "canceled"],
+      enum: ["pending", "preparing", "completed", "canceled"],
       default: "pending",
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
+    // 추가: 총 주문 금액 필드
+    totalAmount: { type: Number, required: true },
+    // 추가: 주문 메모 필드
+    note: { type: String },
   },
-  { timestamps: true, collection: "orders" } // Explicitly set the collection name }
+  { timestamps: true }
 );
 
-module.exports = mongoose.model("Order", OrderSchema);
+export default mongoose.models.Order || mongoose.model("Order", OrderSchema);
