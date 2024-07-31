@@ -1,0 +1,18 @@
+{
+  "categories": [
+    {
+      "name": "Appetizers",
+      "items": [
+        { "id": 1, "name": "Spring Rolls", "price": 5.99 },
+        { "id": 2, "name": "Garlic Bread", "price": 3.99 }
+      ]
+    },
+    {
+      "name": "Main Courses",
+      "items": [
+        { "id": 3, "name": "Grilled Chicken", "price": 10.99 },
+        { "id": 4, "name": "Pasta", "price": 8.99 }
+      ]
+    }
+  ]
+}
