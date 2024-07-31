@@ -1,0 +1,155 @@
+{
+    "_id": {
+        "$oid": "66a8a06870445dfb57a292da"
+    },
+    "restaurantId": "restaurant123",
+    "bizNo": "1234567891",
+    "name": "샘플 레스토랑",
+    "menu": {
+        "음식": [
+            {
+                "id": "food1",
+                "name": "비프 스테이크",
+                "description": "최상급 한우로 만든 부드러운 스테이크",
+                "price": {
+                    "$numberInt": "35000"
+                },
+                "image": "/images/beef-steak.jpg"
+            },
+            {
+                "id": "food2",
+                "name": "파스타 카르보나라",
+                "description": "크리미한 소스의 전통 이탈리안 파스타",
+                "price": {
+                    "$numberInt": "18000"
+                },
+                "image": "/images/pasta-carbonara.jpg"
+            },
+            {
+                "id": "food3",
+                "name": "시저 샐러드",
+                "description": "신선한 로메인 상추와 특제 드레싱의 클래식 샐러드",
+                "price": {
+                    "$numberInt": "12000"
+                },
+                "image": "/images/caesar-salad.jpg"
+            },
+            {
+                "id": "food4",
+                "name": "마르게리타 피자",
+                "description": "토마토, 모짜렐라, 바질의 완벽한 조화",
+                "price": {
+                    "$numberInt": "20000"
+                },
+                "image": "/images/margherita-pizza.jpg"
+            },
+            {
+                "id": "food5",
+                "name": "연어 스테이크",
+                "description": "레몬 버터 소스를 곁들인 부드러운 연어 스테이크",
+                "price": {
+                    "$numberInt": "28000"
+                },
+                "image": "/images/salmon-steak.jpg"
+            }
+        ],
+        "음료": [
+            {
+                "id": "drink1",
+                "name": "아이스 아메리카노",
+                "description": "깔끔하고 시원한 아이스 아메리카노",
+                "price": {
+                    "$numberInt": "4500"
+                },
+                "image": "/images/iced-americano.jpg"
+            },
+            {
+                "id": "drink2",
+                "name": "카페 라떼",
+                "description": "부드러운 우유와 에스프레소의 조화",
+                "price": {
+                    "$numberInt": "5000"
+                },
+                "image": "/images/cafe-latte.jpg"
+            },
+            {
+                "id": "drink3",
+                "name": "오렌지 주스",
+                "description": "신선한 오렌지로 만든 상큼한 주스",
+                "price": {
+                    "$numberInt": "6000"
+                },
+                "image": "/images/orange-juice.jpg"
+            },
+            {
+                "id": "drink4",
+                "name": "녹차",
+                "description": "향긋한 녹차",
+                "price": {
+                    "$numberInt": "4000"
+                },
+                "image": "/images/green-tea.jpg"
+            }
+        ],
+        "주류": [
+            {
+                "id": "alcohol1",
+                "name": "하우스 와인 (레드)",
+                "description": "풍부한 바디감의 레드 와인",
+                "price": {
+                    "$numberInt": "8000"
+                },
+                "image": "/images/red-wine.jpg"
+            },
+            {
+                "id": "alcohol2",
+                "name": "하우스 와인 (화이트)",
+                "description": "상큼한 산미의 화이트 와인",
+                "price": {
+                    "$numberInt": "8000"
+                },
+                "image": "/images/white-wine.jpg"
+            },
+            {
+                "id": "alcohol3",
+                "name": "생맥주",
+                "description": "시원하고 청량한 생맥주",
+                "price": {
+                    "$numberInt": "5000"
+                },
+                "image": "/images/draft-beer.jpg"
+            },
+            {
+                "id": "alcohol4",
+                "name": "모히토",
+                "description": "상쾌한 민트향의 클래식 칵테일",
+                "price": {
+                    "$numberInt": "12000"
+                },
+                "image": "/images/mojito.jpg"
+            }
+        ],
+        "호출": [
+            {
+                "id": "호출1",
+                "name": "직원호출",
+                "image": "/images/green-tea.jpg"
+            },
+            {
+                "id": "호출2",
+                "name": "숫가락",
+                "image": "/images/green-tea.jpg"
+            },
+            {
+                "id": "호출3",
+                "name": "젓가락",
+                "image": "/images/green-tea.jpg"
+            },
+            {
+                "id": "호출4",
+                "name": "물컵",
+                "image": "/images/green-tea.jpg"
+            }
+        ]
+    }
+}

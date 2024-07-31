@@ -42,6 +42,7 @@ export default function Cart({ items, updateItem, removeItem, placeOrder, isMobi
         >
           장바구니 ({items.length})
         </button>
+
         {isCartOpen && (
           <div className="fixed inset-0 bg-white z-50 flex flex-col">
             <div className="flex justify-between items-center p-4 border-b">
@@ -54,6 +55,11 @@ export default function Cart({ items, updateItem, removeItem, placeOrder, isMobi
               <CartContent />
             </div>
             <div className="border-t p-4">
+              {items.length === 0 && (
+                <button className="w-full bg-blue-200 text-white py-3 rounded-lg text-lg font-semibold">
+                  주문하기
+                </button>
+              )}
               <button
                 onClick={placeOrder}
                 className="w-full bg-blue-500 text-white py-3 rounded-lg text-lg font-semibold"

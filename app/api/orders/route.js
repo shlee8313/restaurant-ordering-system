@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
-import clientPromise from "../../lib/mongodb";
-import { ObjectId } from "mongodb";
+import dbConnect from "../../lib/mongoose";
+import Order from "../../models/Order";
+import Restaurant from "../../models/Restaurant";
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const client = await clientPromise;
-    const db = client.db("Restaurant");
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const restaurantId = searchParams.get("restaurantId");
 
-    const orders = await db.collection("orders").find().toArray();
+    if (!restaurantId) {
+      return NextResponse.json({ error: "Restaurant ID is required" }, { status: 400 });
+    }
+
+    // 수정: 주문을 최신순으로 정렬
+    const orders = await Order.find({ restaurantId }).sort({ createdAt: -1 });
     return NextResponse.json(orders);
   } catch (error) {
     console.error("Failed to fetch orders:", error);
@@ -16,47 +23,56 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  // 추가: 로깅 추가
+  console.log("POST request received at /api/orders");
   try {
-    const { restaurantId, tableId, items, status } = await req.json();
+    await dbConnect();
+    const orderData = await req.json();
+    // 추가: 받은 주문 데이터 로깅
+    console.log("Received order data:", orderData);
 
-    const client = await clientPromise;
-    const db = client.db("Restaurant");
+    const { restaurantId, tableId, items } = orderData;
 
-    const order = {
-      restaurantId,
-      tableId,
-      items,
-      status,
-      createdAt: new Date(),
-    };
-    console.log("=======order=========", order);
-    const result = await db.collection("orders").insertOne(order);
-    const insertedOrder = await db.collection("orders").findOne({ _id: result.insertedId });
+    // 수정: 입력 데이터 검증 강화
+    if (!restaurantId || !tableId || !items || items.length === 0) {
+      console.log("Invalid order data");
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
 
-    return NextResponse.json(insertedOrder, { status: 201 });
+    // 추가: 레스토랑 존재 여부 확인
+    const restaurant = await Restaurant.findOne({ restaurantId });
+    if (!restaurant) {
+      console.log("Restaurant not found:", restaurantId);
+      return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
+    }
+
+    const newOrder = new Order(orderData);
+    await newOrder.save();
+    // 추가: 새 주문 저장 로깅
+    console.log("New order saved:", newOrder._id);
+
+    return NextResponse.json(newOrder, { status: 201 });
   } catch (error) {
     console.error("Failed to create order:", error);
-    return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create order", details: error.message },
+      { status: 500 }
+    );
   }
 }
 
 export async function PATCH(req) {
   try {
+    await dbConnect();
     const { orderId, status } = await req.json();
-
-    const client = await clientPromise;
-    const db = client.db("restaurantDB");
-
-    const result = await db
-      .collection("orders")
-      .updateOne({ _id: new ObjectId(orderId) }, { $set: { status } });
-
-    if (result.matchedCount === 0) {
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      { status },
+      { new: true, runValidators: true }
+    );
+    if (!updatedOrder) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
-
-    const updatedOrder = await db.collection("orders").findOne({ _id: new ObjectId(orderId) });
-
     return NextResponse.json(updatedOrder);
   } catch (error) {
     console.error("Failed to update order:", error);

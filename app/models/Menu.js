@@ -16,6 +16,6 @@ const MenuSchema = new mongoose.Schema(
     주류: [MenuItemSchema],
   },
   { collection: "menus" }
-); // 컬렉션 이름을 'menu'로 변경
+); // 컬렉션 이름을 'menus'로 변경
 
 export default mongoose.models.Menu || mongoose.model("Menu", MenuSchema);

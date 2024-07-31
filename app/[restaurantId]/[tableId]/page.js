@@ -110,6 +110,43 @@ export default function MenuPage() {
     }
   };
 
+  const freeOrder = async (item) => {
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          restaurantId, // 실제 레스토랑 ID로 대체해야 합니다
+          tableId, // 실제 테이블 ID로 대체해야 합니다
+          items: [
+            {
+              name: item.name,
+              price: 0, // 무료 서비스이므로 가격은 0입니다
+              quantity: 1,
+            },
+          ],
+          status: "pending",
+        }),
+      });
+
+      if (response.ok) {
+        const newOrder = await response.json();
+        console.log("Free order created:", newOrder);
+        // addOrder(newOrder);
+        // setCart([]);
+        alert("주문이 완료되었습니다!");
+      } else {
+        alert("주문 처리 중 오류가 발생했습니다.");
+      }
+    } catch (error) {
+      console.error("Error placing order:", error);
+      alert("주문 처리 중 오류가 발생했습니다.");
+    }
+
+    // 여기에 주문 성공 후의 로직을 추가할 수 있습니다 (예: 알림 표시)
+  };
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -118,7 +155,7 @@ export default function MenuPage() {
       <p className="px-4 mb-4">테이블 번호: {tableId}</p>
       <div className={`flex ${isMobile ? "flex-col" : "flex-row"}`}>
         <div className={isMobile ? "w-full" : "w-3/4"}>
-          <MenuList menu={menu} addToCart={addToCart} isMobile={isMobile} />
+          <MenuList menu={menu} addToCart={addToCart} isMobile={isMobile} freeOrder={freeOrder} />
         </div>
         <div className={isMobile ? "w-full mt-4" : "w-1/4"}>
           <Cart

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 
-export default function MenuList({ menu, addToCart, isMobile }) {
+export default function MenuList({ menu, addToCart, freeOrder, isMobile }) {
   const [activeCategory, setActiveCategory] = useState("");
   const [categories, setCategories] = useState([]);
 
@@ -54,13 +54,26 @@ export default function MenuList({ menu, addToCart, isMobile }) {
                 </div>
                 <h3 className="text-lg font-bold">{item.name}</h3>
                 <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                <p className="text-green-600 font-semibold">{item.price.toLocaleString()}원</p>
-                <button
-                  className="mt-2 w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-                  onClick={() => addToCart(item)}
-                >
-                  장바구니에 추가
-                </button>
+                {item.price ? (
+                  <p className="text-green-600 font-semibold">{item.price.toLocaleString()}원</p>
+                ) : (
+                  <p className="text-green-600 font-semibold">무료 서비스</p>
+                )}
+                {activeCategory === "호출" ? (
+                  <button
+                    className="mt-2 w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+                    onClick={() => freeOrder(item)}
+                  >
+                    바로 주문하기
+                  </button>
+                ) : (
+                  <button
+                    className="mt-2 w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                    onClick={() => addToCart(item)}
+                  >
+                    장바구니에 추가
+                  </button>
+                )}
               </div>
             ))}
         </div>
