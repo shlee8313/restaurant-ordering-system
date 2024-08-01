@@ -15,7 +15,7 @@ const restaurantSchema = new mongoose.Schema(
     // 추가: orders 필드로 Order 모델과의 관계 설정
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
     // 추가: 메뉴 아이템 필드
-    menuItems: [{ type: mongoose.Schema.Types.ObjectId, ref: "MenuItem" }],
+    // menuItems: [{ type: mongoose.Schema.Types.ObjectId, ref: "MenuItem" }],
   },
   { timestamps: true }
 );

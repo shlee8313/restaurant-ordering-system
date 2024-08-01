@@ -18,7 +18,7 @@ export default function MenuList({ menu, addToCart, freeOrder, isMobile }) {
   return (
     <div className={`${isMobile ? "flex flex-col" : "flex"}`}>
       <div className={isMobile ? "w-full mb-4" : "w-1/4 pr-4"}>
-        <div className={`flex ${isMobile ? "overflow-x-auto" : "flex-col"}`}>
+        <div className={`flex ${isMobile ? "overflow-x-auto custom-scrollbar" : "flex-col"}`}>
           {categories.map((category) => (
             <button
               key={category}

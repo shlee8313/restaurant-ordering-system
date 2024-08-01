@@ -51,3 +51,8 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+.overflow-x-auto {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
+  scroll-behavior: smooth; /* 스크롤 동작 부드럽게 */
+}

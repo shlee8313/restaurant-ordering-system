@@ -6,6 +6,7 @@ import MenuList from "../../components/MenuList";
 import Cart from "../../components/Cart";
 import useOrderStore from "../../store/orderStore";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import { io } from "socket.io-client";
 
 export default function MenuPage() {
   const { restaurantId, tableId } = useParams();
@@ -15,6 +16,17 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const addOrder = useOrderStore((state) => state.addOrder);
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    const newSocket = io("http://localhost:5000", {
+      query: { restaurantId },
+    });
+
+    setSocket(newSocket);
+
+    return () => newSocket.disconnect();
+  }, [restaurantId]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -100,6 +112,7 @@ export default function MenuPage() {
         const newOrder = await res.json();
         addOrder(newOrder);
         setCart([]);
+        socket.emit("newOrder", order);
         alert("주문이 완료되었습니다!");
       } else {
         alert("주문 처리 중 오류가 발생했습니다.");
@@ -110,43 +123,79 @@ export default function MenuPage() {
     }
   };
 
+  // const freeOrder = async (item) => {
+  //   try {
+  //     const response = await fetch("/api/orders", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         restaurantId, // 실제 레스토랑 ID로 대체해야 합니다
+  //         tableId, // 실제 테이블 ID로 대체해야 합니다
+  //         items: [
+  //           {
+  //             name: item.name,
+  //             price: 0, // 무료 서비스이므로 가격은 0입니다
+  //             quantity: 1,
+  //           },
+  //         ],
+  //         status: "pending",
+  //       }),
+  //     });
+
+  //     if (response.ok) {
+  //       const newOrder = await response.json();
+  //       console.log("Free order created:", newOrder);
+  //       // addOrder(newOrder);
+  //       // setCart([]);
+  //       alert("주문이 완료되었습니다!");
+  //     } else {
+  //       alert("주문 처리 중 오류가 발생했습니다.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error placing order:", error);
+  //     alert("주문 처리 중 오류가 발생했습니다.");
+  //   }
+
+  //   // 여기에 주문 성공 후의 로직을 추가할 수 있습니다 (예: 알림 표시)
+  // };
   const freeOrder = async (item) => {
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          restaurantId, // 실제 레스토랑 ID로 대체해야 합니다
-          tableId, // 실제 테이블 ID로 대체해야 합니다
-          items: [
-            {
-              name: item.name,
-              price: 0, // 무료 서비스이므로 가격은 0입니다
-              quantity: 1,
-            },
-          ],
-          status: "pending",
-        }),
-      });
+      const newOrder = {
+        restaurantId,
+        tableId,
+        items: [
+          {
+            name: item.name,
+            price: 0,
+            quantity: 1,
+          },
+        ],
+        status: "pending",
+        orderedAt: new Date().toISOString(),
+      };
 
-      if (response.ok) {
-        const newOrder = await response.json();
-        console.log("Free order created:", newOrder);
-        // addOrder(newOrder);
-        // setCart([]);
-        alert("주문이 완료되었습니다!");
-      } else {
-        alert("주문 처리 중 오류가 발생했습니다.");
-      }
+      // 소켓을 통해 새 주문 정보 전송
+      socket.emit("newOrder", newOrder, (acknowledgement) => {
+        if (acknowledgement.success) {
+          // Zustand store에 주문 추가 (필요한 경우)
+          addOrder(newOrder);
+          // 성공 알림 표시
+          alert("주문이 완료되었습니다!");
+
+          // 추가적인 성공 후 로직
+          // 예: UI 새로고침 등
+        } else {
+          alert("주문 처리 중 오류가 발생했습니다.");
+        }
+      });
     } catch (error) {
-      console.error("Error placing order:", error);
+      console.error("Error placing free order:", error);
       alert("주문 처리 중 오류가 발생했습니다.");
     }
-
-    // 여기에 주문 성공 후의 로직을 추가할 수 있습니다 (예: 알림 표시)
   };
+
   if (loading) return <LoadingSpinner />;
 
   return (

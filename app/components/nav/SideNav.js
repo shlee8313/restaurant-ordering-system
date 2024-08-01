@@ -1,20 +1,30 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import useTableStore from "../../store/useTableStore";
 import useNavigationStore from "../../store/useNavigationStore";
+import useAuthStore from "../../store/useAuthStore";
+import { useRouter } from "next/navigation";
 const SideNav = () => {
   const { isEditMode, toggleEditMode } = useTableStore();
   const { currentPage, setCurrentPage } = useNavigationStore();
+  const { restaurant } = useAuthStore();
+  const router = useRouter();
+  useEffect(() => {
+    if (!restaurant) {
+      router.push("/restaurant/login");
+      return;
+    }
+  }, [restaurant]);
 
   const handleNavClick = (page) => {
     setCurrentPage(page);
   };
 
   return (
-    <nav className="w-64 bg-blue-100 h-screen p-6">
-      <h1 className="text-2xl font-bold mb-6">행복한 분식</h1>
+    <nav className="w-64 bg-gray-100 shadow-lg h-screen p-6">
+      <h1 className="text-2xl font-bold mb-6">{restaurant?.businessName || "레스토랑"}</h1>
       <ul className="space-y-2">
         <li>
           <Link

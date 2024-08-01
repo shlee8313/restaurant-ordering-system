@@ -1,17 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "../../lib/mongoose";
-import Table from "../../models/Table"; // 테이블 모델
-
-// MongoDB 연결
-// const connectToDatabase = async () => {
-//   if (mongoose.connection.readyState >= 1) {
-//     return;
-//   }
-//   await mongoose.connect(process.env.MONGODB_URI, {
-//     useNewUrlParser: true,
-//     useUnifiedTopology: true,
-//   });
-// };
+import Table from "../../models/Table";
 
 // GET: 테이블 정보 가져오기
 export async function GET(req) {
@@ -23,8 +12,8 @@ export async function GET(req) {
       return NextResponse.json({ error: "restaurantId is required" }, { status: 400 });
     }
 
-    await connectToDatabase();
-    const tables = await Table.find({ restaurantId });
+    await dbConnect();
+    const tables = await Table.find({ restaurantId }).sort("tableId");
     return NextResponse.json(tables);
   } catch (error) {
     console.error("Failed to fetch tables:", error);
@@ -37,15 +26,25 @@ export async function POST(req) {
   try {
     const { restaurantId, tables } = await req.json();
 
-    if (!restaurantId || !tables) {
-      return NextResponse.json({ error: "restaurantId and tables are required" }, { status: 400 });
+    if (!restaurantId || !tables || !Array.isArray(tables)) {
+      return NextResponse.json(
+        { error: "restaurantId and valid tables array are required" },
+        { status: 400 }
+      );
     }
 
-    await connectToDatabase();
+    await dbConnect();
     // 기존 테이블 삭제
     await Table.deleteMany({ restaurantId });
+
     // 새 테이블 추가
-    await Table.insertMany(tables);
+    const tablesWithRestaurantId = tables.map((table) => ({
+      ...table,
+      restaurantId,
+      status: table.status || "empty", // 기본값 설정
+    }));
+
+    await Table.insertMany(tablesWithRestaurantId);
     return NextResponse.json({ message: "Tables added successfully" });
   } catch (error) {
     console.error("Failed to add tables:", error);
@@ -53,22 +52,63 @@ export async function POST(req) {
   }
 }
 
-// PATCH: 테이블 위치 업데이트
-export async function PATCH(req) {
+// PUT: 테이블 정보 전체 업데이트
+export async function PUT(req) {
   try {
     const { restaurantId, tables } = await req.json();
 
-    if (!restaurantId || !tables) {
-      return NextResponse.json({ error: "restaurantId and tables are required" }, { status: 400 });
+    if (!restaurantId || !tables || !Array.isArray(tables)) {
+      return NextResponse.json(
+        { error: "restaurantId and valid tables array are required" },
+        { status: 400 }
+      );
     }
 
-    await connectToDatabase();
-    for (const table of tables) {
-      await Table.findOneAndUpdate({ id: table.id, restaurantId }, table, { upsert: true });
-    }
+    await dbConnect();
+
+    // 기존 테이블 삭제 후 새로운 테이블로 대체
+    await Table.deleteMany({ restaurantId });
+
+    const tablesWithRestaurantId = tables.map((table) => ({
+      ...table,
+      restaurantId,
+      status: table.status || "empty", // 기본값 설정
+    }));
+
+    await Table.insertMany(tablesWithRestaurantId);
     return NextResponse.json({ message: "Tables updated successfully" });
   } catch (error) {
     console.error("Failed to update tables:", error);
     return NextResponse.json({ error: "Failed to update tables" }, { status: 500 });
+  }
+}
+
+// PATCH: 개별 테이블 정보 부분 업데이트
+export async function PATCH(req) {
+  try {
+    const { restaurantId, table } = await req.json();
+
+    if (!restaurantId || !table || !table.id) {
+      return NextResponse.json(
+        { error: "restaurantId and table with id are required" },
+        { status: 400 }
+      );
+    }
+
+    await dbConnect();
+    const updatedTable = await Table.findOneAndUpdate(
+      { restaurantId, id: table.id },
+      { $set: { ...table, restaurantId } },
+      { new: true, upsert: true }
+    );
+
+    if (!updatedTable) {
+      return NextResponse.json({ error: "Table not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Table updated successfully", table: updatedTable });
+  } catch (error) {
+    console.error("Failed to update table:", error);
+    return NextResponse.json({ error: "Failed to update table" }, { status: 500 });
   }
 }

@@ -1,74 +1,79 @@
 "use client";
-import React from "react";
+
+import React, { useCallback, useRef } from "react";
 import { Rnd } from "react-rnd";
-import useTableStore from "../store/useTableStore";
 
-const AdvancedTableLayout = ({ onSave }) => {
-  const { isEditMode, tables, updateTable, addTable, removeTable } = useTableStore();
+const AdvancedTableLayout = ({
+  tables,
+  isEditMode,
+  onSaveLayout,
+  onUpdateTable,
+  renderContent,
+}) => {
+  const containerRef = useRef(null);
 
-  const handleTableChange = (id, newProps) => {
-    updateTable(id, newProps);
-  };
+  const getAbsolutePosition = useCallback((x, y) => {
+    if (containerRef.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      return {
+        x: x,
+        y: y,
+      };
+    }
+    return { x, y };
+  }, []);
 
-  const handleAddTable = () => {
-    const newId = Math.max(...tables.map((t) => t.id), 0) + 1;
-    addTable({ id: newId, x: 0, y: 0, width: 100, height: 100, rotation: 0 });
-  };
+  const handleDragStop = useCallback(
+    (id) => (e, d) => {
+      const { x, y } = getAbsolutePosition(d.x, d.y);
+      onUpdateTable(id, { x, y });
+    },
+    [getAbsolutePosition, onUpdateTable]
+  );
 
-  const handleSave = () => {
-    onSave(tables);
-  };
+  const handleResizeStop = useCallback(
+    (id) => (e, direction, ref, delta, position) => {
+      const { x, y } = getAbsolutePosition(position.x, position.y);
+      onUpdateTable(id, {
+        width: parseInt(ref.style.width),
+        height: parseInt(ref.style.height),
+        x,
+        y,
+      });
+    },
+    [getAbsolutePosition, onUpdateTable]
+  );
 
   return (
-    <div className="relative w-full h-[calc(100vh-200px)] bg-gray-100 overflow-hidden border border-gray-300 rounded-lg">
+    <div
+      ref={containerRef}
+      className="relative w-full h-[calc(100vh-200px)] bg-gray-100 overflow-hidden border border-gray-300 rounded-lg"
+    >
       {tables.map((table) => (
         <Rnd
           key={table.id}
           size={{ width: table.width, height: table.height }}
           position={{ x: table.x, y: table.y }}
-          onDragStop={(e, d) => handleTableChange(table.id, { x: d.x, y: d.y })}
-          onResizeStop={(e, direction, ref, delta, position) => {
-            handleTableChange(table.id, {
-              width: parseInt(ref.style.width),
-              height: parseInt(ref.style.height),
-              ...position,
-            });
-          }}
-          style={{ transform: `rotate(${table.rotation}deg)` }}
+          onDragStop={handleDragStop(table.id)}
+          onResizeStop={handleResizeStop(table.id)}
+          bounds="parent"
           disableDragging={!isEditMode}
           enableResizing={isEditMode}
         >
-          <div className="w-full h-full bg-blue-500 rounded-lg shadow-lg flex items-center justify-center cursor-move">
-            <span className="text-white font-bold">테이블 {table.id}</span>
-            {isEditMode && (
-              <>
-                <button
-                  className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
-                  onClick={() => removeTable(table.id)}
-                >
-                  X
-                </button>
-                <input
-                  type="range"
-                  min="0"
-                  max="360"
-                  value={table.rotation}
-                  onChange={(e) =>
-                    handleTableChange(table.id, { rotation: parseInt(e.target.value) })
-                  }
-                  className="absolute bottom-0 left-0 w-full"
-                />
-              </>
-            )}
+          <div className="w-full h-full bg-gray-200 rounded-lg shadow-lg flex items-center justify-center cursor-move">
+            <div className="absolute top-2 left-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+              {table.tableId}
+            </div>
+            <div className="w-full h-full p-2 pt-10">{renderContent(table)}</div>
           </div>
         </Rnd>
       ))}
       {isEditMode && (
         <div className="absolute bottom-4 right-4 space-x-2">
-          <button className="bg-green-500 text-white px-4 py-2 rounded" onClick={handleAddTable}>
-            테이블 추가
-          </button>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={handleSave}>
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={() => onSaveLayout(tables)}
+          >
             저장
           </button>
         </div>

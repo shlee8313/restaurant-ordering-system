@@ -1,4 +1,4 @@
-import create from "zustand";
+import { create } from "zustand";
 
 const useNavigationStore = create((set) => ({
   currentPage: "Admin Dashboard",
