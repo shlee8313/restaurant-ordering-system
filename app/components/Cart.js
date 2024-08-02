@@ -3,8 +3,20 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 
-export default function Cart({ items, updateItem, removeItem, placeOrder, isMobile }) {
+export default function Cart({
+  items,
+  updateItem,
+  removeItem,
+  placeOrder,
+  isMobile,
+  connectSocket,
+}) {
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const handlePlaceOrder = () => {
+    connectSocket();
+    placeOrder();
+  };
 
   const CartContent = () => (
     <>
@@ -61,7 +73,8 @@ export default function Cart({ items, updateItem, removeItem, placeOrder, isMobi
                 </button>
               ) : (
                 <button
-                  onClick={placeOrder}
+                  onClick={handlePlaceOrder}
+                  // disabled={!isConnected}
                   className="w-full bg-blue-500 text-white py-3 rounded-lg text-lg font-semibold"
                 >
                   주문하기
@@ -79,11 +92,15 @@ export default function Cart({ items, updateItem, removeItem, placeOrder, isMobi
       <h2 className="text-xl font-bold mb-4">장바구니</h2>
       <CartContent />
       {items.length === 0 ? (
-        <button className="w-full bg-blue-200 text-white py-3 rounded-lg text-lg font-semibold">
+        <button className="w-full bg-blue-200 text-white py-3 rounded-lg text-lg font-semibold ">
           주문하기
         </button>
       ) : (
-        <button onClick={placeOrder} className="w-full bg-blue-500 text-white py-2 rounded mt-4">
+        <button
+          onClick={handlePlaceOrder}
+          // disabled={!isConnected}
+          className="w-full bg-blue-500 text-white py-2 rounded mt-4 cursor-pointer"
+        >
           주문하기
         </button>
       )}

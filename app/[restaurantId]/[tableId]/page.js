@@ -1,13 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import MenuList from "../../components/MenuList";
 import Cart from "../../components/Cart";
 import useOrderStore from "../../store/orderStore";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { io } from "socket.io-client";
+import { toast } from "react-toastify";
 
+/**
+ * 
+ 
+ */
 export default function MenuPage() {
   const { restaurantId, tableId } = useParams();
   const [restaurant, setRestaurant] = useState(null);
@@ -17,16 +22,76 @@ export default function MenuPage() {
   const [isMobile, setIsMobile] = useState(false);
   const addOrder = useOrderStore((state) => state.addOrder);
   const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  useEffect(() => {
+  const initializeSocket = useCallback(() => {
     const newSocket = io("http://localhost:5000", {
       query: { restaurantId },
     });
 
+    newSocket.on("connect", () => {
+      console.log("손님측 Connected to server");
+      setIsConnected(true);
+    });
+
+    newSocket.on("disconnect", () => {
+      console.log("손님측 Disconnected from server");
+      setIsConnected(false);
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Connection error:", error);
+      setIsConnected(false);
+    });
+
     setSocket(newSocket);
 
-    return () => newSocket.disconnect();
+    return newSocket;
   }, [restaurantId]);
+
+  const connectSocket = useCallback(() => {
+    const currentSocket = socket || initializeSocket();
+    if (!currentSocket.connected) {
+      currentSocket.connect();
+    }
+  }, [socket, initializeSocket]);
+
+  useEffect(() => {
+    initializeSocket();
+    return () => {
+      if (socket) {
+        console.log("손님측 소켓 이니셜라이즈 실팬");
+        socket.disconnect();
+      }
+    };
+  }, [initializeSocket]);
+  // useEffect(() => {
+  //   const newSocket = io("http://localhost:5000", {
+  //     query: { restaurantId },
+  //   });
+
+  //   newSocket.on("connect", () => {
+  //     console.log("손님측 Connected to server");
+  //     setIsConnected(true);
+  //   });
+
+  //   newSocket.on("disconnect", () => {
+  //     console.log("손님측 Disconnected from server");
+  //     setIsConnected(false);
+  //   });
+
+  //   newSocket.on("connect_error", (error) => {
+  //     console.error("Connection error:", error);
+  //     setIsConnected(false);
+  //   });
+
+  //   setSocket(newSocket);
+
+  //   return () => {
+  //     newSocket.close();
+  //     setIsConnected(false);
+  //   };
+  // }, [restaurantId]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -68,6 +133,7 @@ export default function MenuPage() {
   }, [restaurantId]);
 
   const addToCart = (item) => {
+    connectSocket();
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       if (existingItem) {
@@ -91,10 +157,17 @@ export default function MenuPage() {
     setCart((prevCart) => prevCart.filter((item) => item.id !== id));
   };
 
-  const placeOrder = async () => {
+  const placeOrder = useCallback(async () => {
+    connectSocket();
+    if (!isConnected) {
+      console.error("Socket not connected");
+      alert("서버와 연결이 끊어졌습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+
     const order = {
       restaurantId,
-      tableId,
+      tableId: Number(tableId), // Number(tableId) tableId를 숫자로 변환
       items: cart,
       status: "pending",
     };
@@ -112,16 +185,17 @@ export default function MenuPage() {
         const newOrder = await res.json();
         addOrder(newOrder);
         setCart([]);
+        // alert("주문이 완료되었습니다!");
+        toast.success("주문이 완료되었습니다!");
         socket.emit("newOrder", order);
-        alert("주문이 완료되었습니다!");
       } else {
-        alert("주문 처리 중 오류가 발생했습니다.");
+        toast.error("주문 처리 중 오류가 발생했습니다.");
       }
     } catch (error) {
       console.error("Error placing order:", error);
-      alert("주문 처리 중 오류가 발생했습니다.");
+      toast.error("주문 처리 중 오류가 발생했습니다.");
     }
-  };
+  }, [isConnected, socket, restaurantId, tableId, cart, addOrder, connectSocket]);
 
   // const freeOrder = async (item) => {
   //   try {
@@ -160,41 +234,61 @@ export default function MenuPage() {
 
   //   // 여기에 주문 성공 후의 로직을 추가할 수 있습니다 (예: 알림 표시)
   // };
-  const freeOrder = async (item) => {
-    try {
-      const newOrder = {
-        restaurantId,
-        tableId,
-        items: [
-          {
-            name: item.name,
-            price: 0,
-            quantity: 1,
-          },
-        ],
-        status: "pending",
-        orderedAt: new Date().toISOString(),
-      };
+  const freeOrder = useCallback(
+    async (item) => {
+      connectSocket();
+      if (!isConnected) {
+        // console.error("Socket not connected");
+        toast.warning("서버와 연결 중입니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
 
-      // 소켓을 통해 새 주문 정보 전송
-      socket.emit("newOrder", newOrder, (acknowledgement) => {
-        if (acknowledgement.success) {
-          // Zustand store에 주문 추가 (필요한 경우)
-          addOrder(newOrder);
-          // 성공 알림 표시
-          alert("주문이 완료되었습니다!");
+      try {
+        const newOrder = {
+          restaurantId,
+          tableId: Number(tableId), // : Number(tableId) tableId를 숫자로 변환
+          items: [
+            {
+              name: item.name,
+              price: 0,
+              quantity: 1,
+            },
+          ],
+          status: "pending",
+          orderedAt: new Date().toISOString(),
+        };
 
-          // 추가적인 성공 후 로직
-          // 예: UI 새로고침 등
-        } else {
-          alert("주문 처리 중 오류가 발생했습니다.");
-        }
-      });
-    } catch (error) {
-      console.error("Error placing free order:", error);
-      alert("주문 처리 중 오류가 발생했습니다.");
-    }
-  };
+        console.log("손님 호출Emitting new order:", newOrder);
+        // alert("요청하였습니다.");
+
+        socket.emit("newOrder", newOrder, (acknowledgement) => {
+          if (acknowledgement) {
+            // alert("요청하였습니다.");
+            toast.success("요청하였습니다.");
+            console.log("Received acknowledgment:", acknowledgement);
+          } else {
+            console.error("No acknowledgment received from server");
+            toast.error("주문 처리 중 오류가 발생했습니다.");
+          }
+        });
+        // socket.emit("newOrder", newOrder, (acknowledgement) => {
+        //   console.log("Received acknowledgement:", acknowledgement);
+        //   if (acknowledgement && acknowledgement.success) {
+        //     alert("요청하였습니다.");
+        //     alert(acknowledgement.message);
+        //     // toast.success(acknowledgement.message);
+        //   } else {
+        //     console.error("Order not acknowledged properly:", acknowledgement);
+        //     toast.error("주문 처리 중 오류가 발생했습니다.");
+        //   }
+        // });
+      } catch (error) {
+        console.error("Error placing free order:", error);
+        alert("주문 처리 중 오류가 발생했습니다.");
+      }
+    },
+    [isConnected, socket, restaurantId, tableId, addOrder, connectSocket]
+  );
 
   if (loading) return <LoadingSpinner />;
 
@@ -204,7 +298,13 @@ export default function MenuPage() {
       <p className="px-4 mb-4">테이블 번호: {tableId}</p>
       <div className={`flex ${isMobile ? "flex-col" : "flex-row"}`}>
         <div className={isMobile ? "w-full" : "w-3/4"}>
-          <MenuList menu={menu} addToCart={addToCart} isMobile={isMobile} freeOrder={freeOrder} />
+          <MenuList
+            menu={menu}
+            addToCart={addToCart}
+            isMobile={isMobile}
+            freeOrder={freeOrder}
+            connectSocket={connectSocket}
+          />
         </div>
         <div className={isMobile ? "w-full mt-4" : "w-1/4"}>
           <Cart
@@ -213,6 +313,8 @@ export default function MenuPage() {
             removeItem={removeCartItem}
             placeOrder={placeOrder}
             isMobile={isMobile}
+            connectSocket={connectSocket}
+            // isConnected={isConnected}
           />
         </div>
       </div>

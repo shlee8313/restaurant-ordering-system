@@ -47,7 +47,7 @@ export async function POST(request) {
       status: orderData.status,
       totalAmount,
     };
-    // console.log(orderForSaving);
+    console.log(orderForSaving);
     const newOrder = new Order(orderForSaving);
     // console.log(newOrder);
     const savedOrder = await newOrder.save();

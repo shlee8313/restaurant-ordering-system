@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 
-export default function MenuList({ menu, addToCart, freeOrder, isMobile }) {
+export default function MenuList({ menu, addToCart, freeOrder, isMobile, connectSocket }) {
   const [activeCategory, setActiveCategory] = useState("");
   const [categories, setCategories] = useState([]);
 
@@ -14,6 +14,16 @@ export default function MenuList({ menu, addToCart, freeOrder, isMobile }) {
       setActiveCategory(menuCategories[0]);
     }
   }, [menu]);
+
+  const handleAddToCart = (item) => {
+    connectSocket();
+    addToCart(item);
+  };
+
+  const handleFreeOrder = (item) => {
+    connectSocket();
+    freeOrder(item);
+  };
 
   return (
     <div className={`${isMobile ? "flex flex-col" : "flex"}`}>
@@ -63,14 +73,14 @@ export default function MenuList({ menu, addToCart, freeOrder, isMobile }) {
                   {activeCategory === "호출" ? (
                     <button
                       className="mt-2 w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
-                      onClick={() => freeOrder(item)}
+                      onClick={() => handleFreeOrder(item)}
                     >
                       바로 주문하기
                     </button>
                   ) : (
                     <button
                       className="mt-2 w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-                      onClick={() => addToCart(item)}
+                      onClick={() => handleAddToCart(item)}
                     >
                       장바구니에 추가
                     </button>

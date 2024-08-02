@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { initSocket, closeSocket, getSocket } from "../../utils/socket";
 import useAuthStore from "../../store/useAuthStore";
@@ -11,8 +11,10 @@ import { toast } from "react-toastify";
 
 export default function AdminOrderPage() {
   const { restaurant, restaurantToken, refreshToken } = useAuthStore();
-  const { isEditMode, tables, toggleEditMode, setTables, updateTable } = useTableStore();
+  const { isEditMode, tables, toggleEditMode, setTables, updateTable, addTable, removeTable } =
+    useTableStore();
   const { setCurrentPage } = useNavigationStore();
+  const [socket, setSocket] = useState(null);
   const router = useRouter();
 
   const fetchTables = useCallback(async () => {
@@ -38,38 +40,95 @@ export default function AdminOrderPage() {
     }
   }, [restaurant?.restaurantId, restaurantToken, refreshToken]);
 
+  const initializeSocket = useCallback(() => {
+    if (!restaurant || !restaurantToken) return null;
+
+    const newSocket = initSocket(restaurant.restaurantId);
+
+    newSocket.on("connect", () => {
+      console.log("식당측 connected");
+      // console.log("서버에 연결되었습니다.");
+    });
+
+    newSocket.on("disconnect", (reason) => {
+      console.log("식당측 disconnected:", reason);
+      // toast.warning("서버와의 연결이 끊어졌습니다. 재연결 시도 중...");
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Connection error:", error);
+      // toast.error("서버 연결 중 오류가 발생했습니다.");
+    });
+
+    newSocket.on("newOrder", (data) => {
+      console.log("New order received:", data);
+      updateTable(data.tableId, {
+        order: {
+          items: data.items,
+          status: data.status,
+          orderedAt: data.orderedAt,
+        },
+        status: "occupied", // 테이블 상태를 'occupied'로 변경
+      });
+
+      console.log("Current tables after update:", useTableStore.getState().tables);
+      // console.log("Updated tables:", useTableStore.getState().tables);
+      toast.info(`새로운 주문이 접수되었습니다. 테이블: ${data.tableId} ${data.items[0].name}`);
+    });
+    // newSocket.on("tableReset", (tableId) => {
+    //   console.log("Table reset:", tableId);
+    //   updateTable(tableId, { order: null });
+    //   toast.info(`테이블 ${tableId}가 초기화되었습니다.`);
+    // });
+
+    newSocket.io.on("reconnect", (attempt) => {
+      console.log("Reconnected to server after", attempt, "attempts");
+      toast.success("서버에 다시 연결되었습니다.");
+    });
+
+    return newSocket;
+  }, [restaurant, restaurantToken, updateTable]);
+
   useEffect(() => {
     if (!restaurant || !restaurantToken) {
       router.push("/restaurant/login");
       return;
     }
 
-    let socket;
-    const initializeSocket = async () => {
+    const setupSocketAndFetchTables = async () => {
       const fetchedTables = await fetchTables();
       setTables(fetchedTables);
 
-      socket = initSocket(restaurant.restaurantId);
-
-      socket.on("newOrder", (data) => {
-        updateTable(data.tableId, { order: { ...data.order, status: "new" } });
-      });
-
-      socket.on("tableReset", (tableId) => {
-        updateTable(tableId, { order: null });
-      });
+      const newSocket = initializeSocket();
+      if (newSocket) {
+        setSocket(newSocket);
+      }
     };
 
-    initializeSocket();
+    setupSocketAndFetchTables();
 
     return () => {
-      if (socket) closeSocket();
+      if (socket) {
+        closeSocket();
+      }
     };
-  }, [restaurant, restaurantToken, router, updateTable, fetchTables, setTables]);
+  }, [restaurant, restaurantToken, router, fetchTables, setTables, initializeSocket]);
+  console.log(tables);
 
+  // const handleUpdateTable = useCallback(
+  //   (id, newProps) => {
+  //     updateTable(id, newProps);
+  //   },
+  //   [updateTable]
+  // );
   const handleUpdateTable = useCallback(
     (id, newProps) => {
+      console.log(`Updating table ${id} with:`, newProps);
       updateTable(id, newProps);
+      // 상태 업데이트 후 즉시 로그를 출력하는 대신, 다음 렌더링 주기에 로그를 출력합니다.
+      setTimeout(() => {
+        console.log("Current tables after update:", useTableStore.getState().tables);
+      }, 0);
     },
     [updateTable]
   );
@@ -101,6 +160,12 @@ export default function AdminOrderPage() {
       toast.error("테이블 레이아웃 저장에 실패했습니다.");
     }
   };
+
+  useEffect(() => {
+    console.log("Tables updated:", tables);
+  }, [tables]);
+
+  // console.log(tables);
 
   const renderTableContent = useCallback((table) => {
     const order = table.order;
@@ -138,6 +203,8 @@ export default function AdminOrderPage() {
         onSaveLayout={handleSaveLayout}
         onUpdateTable={handleUpdateTable}
         renderContent={renderTableContent}
+        onAddTable={addTable}
+        onRemoveTable={removeTable}
       />
     </div>
   );
