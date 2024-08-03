@@ -3,9 +3,8 @@ import { create } from "zustand";
 const useTableStore = create((set) => ({
   isEditMode: false,
   tables: [],
+  setTables: (newTables) => set({ tables: newTables }),
   toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
-  setTables: (tables) => set({ tables }),
-
   updateTable: (tableId, newProps) =>
     set((state) => {
       console.log("Updating table:", tableId, "with props:", newProps);
@@ -20,24 +19,44 @@ const useTableStore = create((set) => ({
             console.log("Table position updated:", updatedTable);
           }
 
-          // 소켓 데이터 처리 (주문 정보 업데이트)
+          // 주문 정보 업데이트
           if (newProps.order) {
             const existingItems = table.order?.items || [];
-            const newItems = newProps.order.items.filter(
-              (newItem) =>
-                !existingItems.some(
-                  (existingItem) =>
-                    existingItem.name === newItem.name &&
-                    existingItem.price === newItem.price &&
-                    existingItem.quantity === newItem.quantity
-                )
-            );
+            let updatedItems;
+
+            if (Array.isArray(newProps.order.items)) {
+              // 새 주문 항목 처리 (소켓에서 온 데이터)
+              updatedItems = [...existingItems];
+              newProps.order.items.forEach((newItem) => {
+                const existingItemIndex = updatedItems.findIndex(
+                  (item) => item.name === newItem.name && item.status === newProps.order.status
+                );
+
+                if (existingItemIndex !== -1) {
+                  if (newItem.price !== 0) {
+                    // 가격이 0이 아닌 경우: 수량 증가
+                    updatedItems[existingItemIndex].quantity += newItem.quantity;
+                  }
+                  // 가격이 0인 경우: 이미 존재하므로 무시 (아무 작업 안 함)
+                } else {
+                  // 새로운 항목 추가 (가격이 0이든 아니든 모두 추가)
+                  updatedItems.push({
+                    ...newItem,
+                    status: newProps.order.status,
+                  });
+                }
+              });
+            } else {
+              // 기존 주문 항목 업데이트 (버튼 클릭 등으로 인한 업데이트)
+              updatedItems = newProps.order.items;
+            }
 
             updatedTable.order = {
               ...table.order,
-              items: [...existingItems, ...newItems],
-              status: newProps.order.status,
-              orderedAt: newProps.order.orderedAt,
+              ...newProps.order,
+              items: updatedItems,
+              status: newProps.order.status || table.order?.status,
+              orderedAt: newProps.order.orderedAt || table.order?.orderedAt,
             };
             updatedTable.status = newProps.status || table.status;
             console.log("Table order updated:", updatedTable);
@@ -59,6 +78,25 @@ const useTableStore = create((set) => ({
       return { tables: updatedTables };
     }),
 
+  updateTableOrder: (tableId, updatedOrder) =>
+    set((state) => {
+      const updatedTables = state.tables.map((table) => {
+        if (table.tableId === Number(tableId)) {
+          return {
+            ...table,
+            order: updatedOrder,
+            status: updatedOrder.items.length > 0 ? "occupied" : "empty",
+          };
+        }
+        return table;
+      });
+      console.log(
+        "Table order updated:",
+        updatedTables.find((t) => t.tableId === Number(tableId))
+      );
+      return { tables: updatedTables };
+    }),
+
   addTable: () =>
     set((state) => {
       const newTableId =
@@ -71,10 +109,11 @@ const useTableStore = create((set) => ({
         width: 100,
         height: 100,
         status: "empty",
+        order: null,
       };
+      console.log("Adding new table:", newTable);
       return { tables: [...state.tables, newTable] };
     }),
-
   removeTable: (id) =>
     set((state) => {
       const newTables = state.tables.filter((table) => table.id !== id);
@@ -101,57 +140,3 @@ const useTableStore = create((set) => ({
 }));
 
 export default useTableStore;
-
-// import { create } from "zustand";
-
-// const useTableStore = create((set) => ({
-//   isEditMode: false,
-//   tables: [],
-//   toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
-//   setTables: (tables) => set({ tables }),
-//   updateTable: (tableId, newProps) =>
-//     set((state) => {
-//       console.log("Updating table:", tableId, newProps);
-//       const updatedTables = state.tables.map((table) =>
-//         table.tableId.toString() === tableId.toString() ? { ...table, ...newProps } : table
-//       );
-//       console.log("Updated tables:", updatedTables);
-//       return { tables: updatedTables };
-//     }),
-//   addTable: () =>
-//     set((state) => {
-//       const newTableId =
-//         state.tables.length > 0 ? Math.max(...state.tables.map((t) => t.tableId)) + 1 : 1;
-//       const newTable = {
-//         id: Date.now().toString(),
-//         tableId: newTableId,
-//         x: 0,
-//         y: 0,
-//         width: 100,
-//         height: 100,
-//         status: "empty",
-//       };
-//       const newTables = [...state.tables, newTable];
-//       return {
-//         tables: newTables.map((table, index) => ({ ...table, tableId: index + 1 })),
-//       };
-//     }),
-//   removeTable: (id) =>
-//     set((state) => {
-//       const newTables = state.tables.filter((table) => table.id !== id);
-//       return {
-//         tables: newTables
-//           .sort((a, b) => a.tableId - b.tableId)
-//           .map((table, index) => ({ ...table, tableId: index + 1 })),
-//       };
-//     }),
-//   reorderTableIds: () => {
-//     set((state) => ({
-//       tables: state.tables
-//         .sort((a, b) => a.tableId - b.tableId)
-//         .map((table, index) => ({ ...table, tableId: index + 1 })),
-//     }));
-//   },
-// }));
-
-// export default useTableStore;

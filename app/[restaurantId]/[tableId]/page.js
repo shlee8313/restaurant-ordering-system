@@ -195,7 +195,7 @@ export default function MenuPage() {
       console.error("Error placing order:", error);
       toast.error("주문 처리 중 오류가 발생했습니다.");
     }
-  }, [isConnected, socket, restaurantId, tableId, cart, addOrder, connectSocket]);
+  }, [isConnected, restaurantId, cart, addOrder]);
 
   // const freeOrder = async (item) => {
   //   try {
