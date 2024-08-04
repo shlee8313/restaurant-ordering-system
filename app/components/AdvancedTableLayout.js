@@ -52,8 +52,8 @@ const AdvancedTableLayout = ({
           minWidth={80}
           minHeight={80}
         >
-          <div className="w-full h-full bg-gray-200 rounded-lg shadow-lg flex items-center justify-center cursor-move">
-            <div className="absolute top-2 left-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+          <div className="w-full h-full bg-gray-200 rounded-lg shadow-lg flex items-center justify-center ">
+            <div className="absolute top-2 left-2 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold">
               {table.tableId}
             </div>
             {isEditMode && (

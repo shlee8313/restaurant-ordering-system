@@ -22,7 +22,7 @@ const TopNavigation = () => {
       <h2 className="text-md font-semibold">{currentPage}</h2>
       <button
         onClick={handleLogout}
-        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        className="bg-gray-500 text-white px-4 py-2 mr-20 rounded hover:bg-red-600"
       >
         로그아웃
       </button>

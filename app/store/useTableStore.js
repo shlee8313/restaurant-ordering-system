@@ -77,23 +77,65 @@ const useTableStore = create((set) => ({
       console.log("All tables after update:", updatedTables);
       return { tables: updatedTables };
     }),
-
+  /**
+ * 
+ 
+ */
   updateTableOrder: (tableId, updatedOrder) =>
     set((state) => {
       const updatedTables = state.tables.map((table) => {
         if (table.tableId === Number(tableId)) {
+          // 가격이 0인 항목 제거
+          const filteredItems = updatedOrder.items.filter((item) => item.price !== 0);
+
           return {
             ...table,
-            order: updatedOrder,
-            status: updatedOrder.items.length > 0 ? "occupied" : "empty",
+            order:
+              filteredItems.length > 0
+                ? {
+                    ...updatedOrder,
+                    items: filteredItems,
+                  }
+                : null,
+            status: filteredItems.length > 0 ? "occupied" : "empty",
           };
         }
         return table;
       });
+
       console.log(
         "Table order updated:",
         updatedTables.find((t) => t.tableId === Number(tableId))
       );
+      return { tables: updatedTables };
+    }),
+  /**
+ * 
+
+ */
+
+  updateOrderItemStatus: (tableId, itemId, newStatus) =>
+    set((state) => {
+      const updatedTables = state.tables.map((table) => {
+        if (table.tableId === Number(tableId) && table.order) {
+          const updatedItems = table.order.items.map((item) => {
+            if (item.id === itemId) {
+              return { ...item, status: newStatus };
+            }
+            return item;
+          });
+
+          // Check if all items are completed
+          const allCompleted = updatedItems.every((item) => item.status === "completed");
+
+          return {
+            ...table,
+            order: { ...table.order, items: updatedItems },
+            status: allCompleted ? "completed" : "occupied",
+          };
+        }
+        return table;
+      });
       return { tables: updatedTables };
     }),
 

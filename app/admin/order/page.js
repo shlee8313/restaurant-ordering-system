@@ -8,7 +8,12 @@ import useTableStore from "../../store/useTableStore";
 import useNavigationStore from "../../store/useNavigationStore";
 import AdvancedTableLayout from "../../components/AdvancedTableLayout";
 import { toast } from "react-toastify";
-
+import useOrderQueueStore from "../../store/useOrderQueueStore";
+import { v4 as uuidv4 } from "uuid";
+/**
+ * 
+ 
+ */
 export default function AdminOrderPage() {
   const { restaurant, restaurantToken, refreshToken } = useAuthStore();
   const {
@@ -20,11 +25,22 @@ export default function AdminOrderPage() {
     addTable,
     removeTable,
     updateTableOrder,
+    updateOrderItemStatus,
   } = useTableStore();
+  const { addToOrderQueue, updateOrderStatus, getActiveOrders, getOrderPosition } =
+    useOrderQueueStore();
+
+  /**
+   *
+   */
   const { setCurrentPage } = useNavigationStore();
   const [socket, setSocket] = useState(null);
   const router = useRouter();
-
+  /**
+   * 초기 테이블 생성 함수
+   * 레스토랑에 기본 테이블 레이아웃을 설정합니다.
+   *
+   */
   const createInitialTables = useCallback(async () => {
     if (!restaurant?.restaurantId) {
       console.error("Restaurant ID is not available");
@@ -37,25 +53,25 @@ export default function AdminOrderPage() {
         tableId: 1,
         x: 50,
         y: 50,
-        width: 200,
+        width: 300,
         height: 300,
         status: "empty",
       },
       {
         restaurantId: restaurant.restaurantId,
         tableId: 2,
-        x: 300,
+        x: 400,
         y: 50,
-        width: 200,
+        width: 300,
         height: 300,
         status: "empty",
       },
       {
         restaurantId: restaurant.restaurantId,
         tableId: 3,
-        x: 550,
+        x: 650,
         y: 50,
-        width: 200,
+        width: 300,
         height: 300,
         status: "empty",
       },
@@ -64,25 +80,25 @@ export default function AdminOrderPage() {
         tableId: 4,
         x: 50,
         y: 400,
-        width: 200,
+        width: 300,
         height: 300,
         status: "empty",
       },
       {
         restaurantId: restaurant.restaurantId,
         tableId: 5,
-        x: 300,
+        x: 400,
         y: 400,
-        width: 200,
+        width: 300,
         height: 300,
         status: "empty",
       },
       {
         restaurantId: restaurant.restaurantId,
         tableId: 6,
-        x: 550,
+        x: 650,
         y: 400,
-        width: 200,
+        width: 300,
         height: 300,
         status: "empty",
       },
@@ -123,7 +139,12 @@ export default function AdminOrderPage() {
   /**
    *
    */
-
+  /**
+   * 테이블 정보 fetch 함수
+   * 서버로부터 현재 레스토랑의 테이블 정보를 가져옵니다.
+   * 테이블이 없으면 초기 테이블을 생성합니다.
+   *
+   */
   const fetchTables = useCallback(async () => {
     if (!restaurant?.restaurantId) {
       console.error("Restaurant ID is not available");
@@ -153,7 +174,11 @@ export default function AdminOrderPage() {
     }
   }, [restaurant?.restaurantId, restaurantToken, setTables, createInitialTables]);
 
-  // 소켓 초기화 함수
+  /**
+   * 소켓 초기화 함수
+   * 실시간 주문 업데이트를 위한 웹소켓 연결을 설정합니다.
+   * 초기화된 소켓 객체 또는 null
+   */
   const initializeSocket = useCallback(() => {
     console.log("initializeSocket called");
     if (!restaurant || !restaurantToken) return null;
@@ -172,21 +197,6 @@ export default function AdminOrderPage() {
       console.error("Socket connection error:", error);
     });
 
-    // newSocket.on("newOrder", (data) => {
-    //   console.log("New order received:", data);
-    //   updateTable(data.tableId, {
-    //     order: {
-    //       items: data.items,
-    //       status: data.status,
-    //       orderedAt: data.orderedAt,
-    //     },
-    //     status: "occupied",
-    //   });
-
-    //   console.log("Current tables after update:", useTableStore.getState().tables);
-    //   toast.info(`새로운 주문이 접수되었습니다. 테이블: ${data.tableId} ${data.items[0].name}`);
-    // });
-
     newSocket.io.on("reconnect", (attempt) => {
       console.log("Reconnected to server after", attempt, "attempts");
       toast.success("서버에 다시 연결되었습니다.");
@@ -196,26 +206,46 @@ export default function AdminOrderPage() {
   }, [restaurant, restaurantToken]);
 
   /**
+   * 새 주문 처리 함수
+   * 새로운 주문이 들어왔을 때 호출되며, 테이블 상태와 주문 대기열을 업데이트합니다.
    *
    */
   const handleNewOrder = useCallback(
     (data) => {
       console.log("New order received:", data);
+
+      // totalAmount 계산
+      const totalAmount = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      // 새로운 주문 객체 생성
+      const newOrder = {
+        _id: uuidv4(), // 새로운 고유 ID 생성
+        items: data.items,
+        status: data.status || "pending",
+        orderedAt: data.orderedAt || new Date().toISOString(),
+        totalAmount: totalAmount,
+      };
+
+      // 테이블 상태 업데이트
       updateTable(data.tableId, {
-        order: {
-          items: data.items,
-          status: data.status,
-          orderedAt: data.orderedAt,
-        },
+        order: newOrder,
         status: "occupied",
+      });
+
+      // 주문 대기열에 새 주문 추가
+      addToOrderQueue({
+        _id: newOrder._id,
+        tableId: data.tableId,
+        items: newOrder.items,
+        status: newOrder.status,
+        totalAmount: newOrder.totalAmount,
       });
 
       console.log("Current tables after update:", useTableStore.getState().tables);
       toast.info(`새로운 주문이 접수되었습니다. 테이블: ${data.tableId} ${data.items[0].name}`);
     },
-    [updateTable]
+    [updateTable, addToOrderQueue]
   );
-
   // 컴포넌트 마운트 시 실행되는 효과
   useEffect(() => {
     console.log("AdminOrderPage useEffect triggered");
@@ -243,7 +273,12 @@ export default function AdminOrderPage() {
     };
   }, [restaurant, restaurantToken, router, fetchTables, initializeSocket, handleNewOrder]);
 
-  // 테이블 업데이트 핸들러
+  /**
+   * 테이블 업데이트 핸들러
+   * 테이블의 속성(위치, 크기 등)을 업데이트합니다.
+   *  {string|number} id - 테이블 ID
+   *  {Object} newProps - 업데이트할 새 속성
+   */
   const handleUpdateTable = useCallback(
     (id, newProps) => {
       console.log(`Updating table ${id} with:`, newProps);
@@ -255,7 +290,11 @@ export default function AdminOrderPage() {
     [updateTable]
   );
 
-  // 레이아웃 저장 핸들러
+  /**
+   * 레이아웃 저장 핸들러
+   * 수정된 테이블 레이아웃을 서버에 저장합니다.
+   *  {Array} newTables - 새로운 테이블 레이아웃 배열
+   */
   const handleSaveLayout = async (newTables) => {
     console.log("handleSaveLayout called with:", newTables);
     try {
@@ -286,87 +325,207 @@ export default function AdminOrderPage() {
     }
   };
   /**
-   *
+   * 주문 상태 변경 핸들러
+   * 개별 주문 항목의 상태를 변경하고 서버와 로컬 상태를 업데이트합니다.
+   * {string|number} tableId - 테이블 ID
+   *  {Object} order - 주문 객체
+   *  {number} itemIndex - 변경할 항목의 인덱스
    */
-  const handleUpdateTableOrder = useCallback(
-    (tableId, updatedOrder) => {
+  const handleOrderStatusChange = useCallback(
+    async (tableId, order, itemIndex) => {
+      const currentItem = order.items[itemIndex];
+      let newStatus;
+      switch (currentItem.status) {
+        case "pending":
+          newStatus = "preparing";
+          break;
+        case "preparing":
+          newStatus = "served";
+          break;
+        case "served":
+          newStatus = "completed";
+          break;
+        default:
+          return; // 이미 completed 상태면 아무 동작 안 함
+      }
+
+      try {
+        const response = await fetch("/api/tables", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            restaurantId: restaurant.restaurantId,
+            tableId: tableId,
+            itemId: currentItem.id,
+            newStatus: newStatus,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update order status");
+        }
+
+        const updatedData = await response.json();
+
+        // 업데이트된 items 배열 생성
+        const updatedItems = order.items.map((item) =>
+          item.id === currentItem.id ? { ...item, status: newStatus } : item
+        );
+
+        // totalAmount 재계산
+        // const totalAmount = updatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+        // 로컬 상태 업데이트
+        updateTableOrder(tableId, {
+          ...order,
+          items: updatedItems,
+        });
+
+        // 주문 대기열 상태 업데이트 로직
+        const allItemsServedOrCompleted = updatedItems.every(
+          (item) => item.status === "served" || item.status === "completed"
+        );
+
+        if (allItemsServedOrCompleted) {
+          updateOrderStatus(order._id, "served");
+        }
+
+        toast.success(`주문 상태가 '${newStatus}'로 업데이트되었습니다.`);
+      } catch (error) {
+        console.error("Error updating order status:", error);
+        toast.error("주문 상태 업데이트에 실패했습니다.");
+      }
+    },
+    [updateTableOrder, updateOrderStatus, restaurant?.restaurantId]
+  );
+
+  /**
+   * 호출 완료 핸들러
+   * 가격이 0인 항목(호출)을 주문에서 제거합니다.
+   * {string|number} tableId - 테이블 ID
+   *  {Object} order - 주문 객체
+   *  {number} index - 제거할 항목의 인덱스
+   */
+  const handleCallComplete = useCallback(
+    (tableId, order, index) => {
+      const updatedItems = order.items.filter((_, idx) => idx !== index);
+      const updatedOrder = {
+        ...order,
+        items: updatedItems,
+      };
       updateTableOrder(tableId, updatedOrder);
     },
     [updateTableOrder]
   );
+  /**
+   * 숫자 포맷팅 함수
+   * 숫자에 천 단위 구분 쉼표를 추가합니다.
+  
+   */
+  const formatNumber = (number) => {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+  // 헬퍼 함수들
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pending":
+        return "bg-red-500 text-white";
+      case "preparing":
+        return "bg-yellow-500 text-white";
+      case "served":
+        return "bg-gray-400 text-gray-700";
+      case "completed":
+        return "bg-green-200text-gray-700";
+      default:
+        return "bg-gray-500";
+    }
+  };
 
-  // 테이블 내용 렌더링 함수
+  const getStatusText = (status) => {
+    switch (status) {
+      case "pending":
+        return "주문접수";
+      case "preparing":
+        return "준비중";
+      case "served":
+        return "서빙완료";
+      case "completed":
+        return "완료";
+      default:
+        return "알 수 없음";
+    }
+  };
+
+  /**
+   * 테이블 내용 렌더링 함수
+   * 각 테이블의 주문 정보를 렌더링합니다.
+  
+   */
   const renderTableContent = useCallback(
     (table) => {
       const order = table.order;
+      console.log(order);
       return (
-        <div className="w-full h-full p-1 overflow-y-auto custom-scrollbar">
-          {order ? (
-            <div>
-              <ul className="text-sm">
-                {order.items.map((item, index) => (
-                  <li key={index}>
-                    <div className="flex justify-between items-center p-2 border-b">
-                      <span className="flex-grow">
-                        {item.name} x {item.quantity}
-                      </span>
-                      <div className="flex items-center">
-                        {item.price === 0 ? (
-                          <button
-                            className="text-sm px-2 py-1 rounded-xl mr-2 bg-yellow-500 text-white"
-                            onClick={() => {
-                              const updatedItems = order.items.filter((_, idx) => idx !== index);
-                              handleUpdateTableOrder(table.tableId, {
-                                ...order,
-                                items: updatedItems,
-                              });
-                            }}
-                          >
-                            호출 완료
-                          </button>
-                        ) : (
-                          <button
-                            className={`text-sm px-2 py-1 rounded-xl mr-2 ${
-                              item.status === "preparing" ? "bg-blue-500" : "bg-green-500"
-                            } text-white`}
-                            onClick={() => {
-                              const updatedItems = order.items.map((i, idx) =>
-                                idx === index ? { ...i, status: "preparing" } : i
-                              );
-                              handleUpdateTableOrder(table.tableId, {
-                                ...order,
-                                items: updatedItems,
-                              });
-                            }}
-                          >
-                            {item.status === "preparing" ? "준비중" : "주문 접수"}
-                          </button>
-                        )}
-                        <span
-                          className={`text-sm px-2 py-1 rounded-xl ${
-                            order.status === "pending" ? "bg-red-500" : "bg-green-500"
-                          } text-white`}
-                        >
-                          {order.status}
+        <div className="w-full h-full flex flex-col">
+          <div className="flex-grow overflow-y-auto custom-scrollbar">
+            {order ? (
+              <div>
+                <ul className="text-sm">
+                  {order.items.map((item, index) => (
+                    <li key={index} className="border-b border-blue-300">
+                      <div className="flex justify-between items-center p-2 border-b">
+                        <span className="flex-grow flex items-center">
+                          <span>{item.name}</span>
+                          <span className="ml-2 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+                            {item.quantity}
+                          </span>
                         </span>
+                        <div className="flex">
+                          {item.price === 0 ? (
+                            <button
+                              className="text-sm px-2 py-1 rounded-xl mr-2 bg-gray-800 text-white"
+                              onClick={() => handleCallComplete(table.tableId, order, index)}
+                            >
+                              호출
+                            </button>
+                          ) : (
+                            <div className="relative">
+                              <button
+                                className={`text-sm px-2 py-1 rounded-xl mr-2 ${getStatusColor(
+                                  item.status
+                                )}`}
+                                onClick={() => handleOrderStatusChange(table.tableId, order, index)}
+                              >
+                                {getStatusText(item.status)}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-sm">주문 없음</p>
+            )}
+          </div>
+          {order && (
+            <div className="mt-2 font-bold text-right p-2 border-t border-gray-200">
+              총액: {formatNumber(order.totalAmount)}원
             </div>
-          ) : (
-            <p className="text-sm">주문 없음</p>
           )}
         </div>
       );
     },
-    [handleUpdateTableOrder]
+    [handleCallComplete, handleOrderStatusChange]
   );
-
   /**
    *
    */
+
   if (!restaurant) return <div>Loading...</div>;
 
   return (

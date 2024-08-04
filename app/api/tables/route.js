@@ -2,47 +2,12 @@ import { NextResponse } from "next/server";
 import dbConnect from "../../lib/mongoose";
 import Table from "../../models/Table";
 import Restaurant from "../../models/Restaurant";
+import Order from "../../models/Order";
+import { ChevronDownCircle } from "lucide-react";
 
-// 초기 테이블 생성 함수
-// async function createInitialTables(restaurantId) {
-//   try {
-//     console.log("Starting creation of initial tables for restaurantId:", restaurantId);
-//     const initialTables = [
-//       { restaurantId, tableId: 1, x: 50, y: 50, width: 100, height: 100, status: "empty" },
-//       { restaurantId, tableId: 2, x: 200, y: 50, width: 100, height: 100, status: "empty" },
-//       { restaurantId, tableId: 3, x: 350, y: 50, width: 150, height: 100, status: "empty" },
-//       { restaurantId, tableId: 4, x: 50, y: 200, width: 150, height: 100, status: "empty" },
-//       { restaurantId, tableId: 5, x: 250, y: 200, width: 200, height: 100, status: "empty" },
-//       { restaurantId, tableId: 6, x: 50, y: 350, width: 400, height: 50, status: "empty" },
-//     ];
-
-//     console.log("Attempting to create tables:", initialTables);
-
-//     const createdTables = await Promise.all(
-//       initialTables.map(async (table) => {
-//         try {
-//           const result = await Table.findOneAndUpdate(
-//             { restaurantId: table.restaurantId, tableId: table.tableId },
-//             table,
-//             { upsert: true, new: true, runValidators: true }
-//           );
-//           console.log(`Table ${table.tableId} created/updated successfully`);
-//           return result;
-//         } catch (err) {
-//           console.error(`Error creating/updating table ${table.tableId}:`, err);
-//           return null;
-//         }
-//       })
-//     );
-
-//     const validTables = createdTables.filter((table) => table !== null);
-//     console.log("Successfully created/updated tables:", validTables);
-//     return validTables;
-//   } catch (error) {
-//     console.error("Error in createInitialTables:", error);
-//     throw error;
-//   }
-// }
+/**
+ *
+ */
 // GET: 테이블 정보 가져오기
 export async function GET(req) {
   try {
@@ -57,12 +22,13 @@ export async function GET(req) {
     }
 
     await dbConnect();
-    let tables = await Table.find({ restaurantId }).sort("tableId");
+    let tables = await Table.find({ restaurantId }).sort("tableId").lean();
     console.log("Fetched tables from database:", tables);
 
     if (tables.length === 0) {
       console.log("No tables found, attempting to create initial tables...");
       try {
+        // Uncomment the following line if you have a createInitialTables function
         // tables = await createInitialTables(restaurantId);
         console.log("Initial tables created successfully:", tables);
       } catch (error) {
@@ -78,13 +44,57 @@ export async function GET(req) {
       console.log("Existing tables found:", tables);
     }
 
-    return NextResponse.json(tables);
+    // Fetch active orders for each table
+    const tablesWithOrders = await Promise.all(
+      tables.map(async (table) => {
+        const activeOrders = await Order.find({
+          restaurantId,
+          tableId: table.tableId,
+          status: { $ne: "completed" },
+        }).lean();
+
+        let consolidatedItems = [];
+        let totalAmount = 0;
+        console.log(activeOrders);
+        activeOrders.forEach((order) => {
+          order.items.forEach((item) => {
+            const existingItem = consolidatedItems.find(
+              (i) => i.id === item.id && i.name === item.name && i.price === item.price
+            );
+            if (existingItem) {
+              existingItem.quantity += item.quantity;
+            } else {
+              consolidatedItems.push({ ...item });
+            }
+          });
+          totalAmount += order.totalAmount;
+        });
+
+        const consolidatedOrder =
+          activeOrders.length > 0
+            ? {
+                ...activeOrders[0],
+                items: consolidatedItems,
+                totalAmount: totalAmount,
+                status: activeOrders[activeOrders.length - 1].status, // 가장 최근 주문의 상태 사용
+              }
+            : null;
+
+        return {
+          ...table,
+          order: consolidatedOrder,
+        };
+      })
+    );
+
+    console.log("Tables with consolidated active orders:", tablesWithOrders);
+
+    return NextResponse.json(tablesWithOrders);
   } catch (error) {
     console.error("Failed to fetch tables:", error);
     return NextResponse.json({ error: "Failed to fetch tables" }, { status: 500 });
   }
 }
-
 // POST: 주문 처리 함수
 export async function POST(req) {
   try {
@@ -170,39 +180,144 @@ export async function PUT(req) {
 }
 
 // PATCH: 개별 테이블 정보 부분 업데이트
+// export async function PATCH(req) {
+//   try {
+//     const { restaurantId, tableId, order: updatedOrder } = await req.json();
+
+//     if (!restaurantId || !tableId || !updatedOrder) {
+//       return NextResponse.json(
+//         { error: "restaurantId, tableId, and order data are required" },
+//         { status: 400 }
+//       );
+//     }
+
+//     await dbConnect();
+
+//     // 테이블 찾기
+//     const table = await Table.findOne({ restaurantId, tableId });
+//     if (!table) {
+//       return NextResponse.json({ error: "Table not found" }, { status: 404 });
+//     }
+
+//     // 주문 찾기 또는 생성
+//     let order = await Order.findOne({ restaurantId, tableId, status: { $ne: "completed" } });
+//     if (!order) {
+//       order = new Order({
+//         restaurantId,
+//         tableId,
+//         ...updatedOrder,
+//         totalAmount: updatedOrder.totalAmount || 0, // totalAmount가 없으면 0으로 설정
+//       });
+//     } else {
+//       console.log(updatedOrder);
+//       // 주문 업데이트
+//       order.items = updatedOrder.items;
+//       order.status = updatedOrder.status;
+//       order.totalAmount = updatedOrder.totalAmount || 0; // totalAmount가 없으면 0으로 설정
+//     }
+
+//     await order.save();
+
+//     // 테이블 상태 업데이트
+//     table.status = order.items.length > 0 ? "occupied" : "empty";
+//     await table.save();
+
+//     return NextResponse.json({ message: "Order updated successfully", order });
+//   } catch (error) {
+//     console.error("Failed to update order:", error);
+//     return NextResponse.json(
+//       { error: "Failed to update order", details: error.message },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+/**
+ * 오늘
+ */
 export async function PATCH(req) {
   try {
-    const body = await req.json();
-    console.log("Received PATCH request with body:", body);
-    const { restaurantId, table } = body;
-    console.log("Parsed request data:", { restaurantId, table });
+    const { restaurantId, tableId, order: updatedOrder, itemId, newStatus } = await req.json();
 
-    if (!restaurantId || !table || !table.id) {
-      console.warn("Invalid request data:", { restaurantId, table });
-      return NextResponse.json(
-        { error: "restaurantId and table with id are required" },
-        { status: 400 }
-      );
+    if (!restaurantId || !tableId) {
+      return NextResponse.json({ error: "restaurantId and tableId are required" }, { status: 400 });
     }
 
     await dbConnect();
-    console.log("Connected to database");
 
-    const updatedTable = await Table.findOneAndUpdate(
-      { restaurantId, id: table.id },
-      { $set: { ...table, restaurantId } },
-      { new: true, upsert: true }
-    );
+    // 가장 최근의 완료되지 않은 주문을 찾습니다.
+    let order = await Order.findOne({
+      restaurantId,
+      tableId,
+      status: { $ne: "completed" },
+    }).sort({ createdAt: -1 });
 
-    if (!updatedTable) {
-      console.warn("Table not found for updating:", { restaurantId, table });
-      return NextResponse.json({ error: "Table not found" }, { status: 404 });
+    if (!order) {
+      if (!updatedOrder) {
+        return NextResponse.json({ error: "No active order found" }, { status: 404 });
+      }
+      // 새 주문 생성
+      order = new Order({
+        restaurantId,
+        tableId,
+        items: updatedOrder.items,
+        totalAmount: updatedOrder.totalAmount || 0,
+        status: "pending",
+      });
+    } else {
+      // 기존 주문 업데이트
+      if (itemId && newStatus) {
+        // 개별 항목 상태 업데이트
+        const itemIndex = order.items.findIndex((item) => item.id === itemId);
+        if (itemIndex !== -1) {
+          order.items[itemIndex].status = newStatus;
+        }
+      } else if (updatedOrder) {
+        // 새 항목 추가 또는 기존 항목 업데이트
+        updatedOrder.items.forEach((newItem) => {
+          const existingItemIndex = order.items.findIndex((item) => item.id === newItem.id);
+          if (existingItemIndex !== -1) {
+            // 기존 항목 업데이트
+            order.items[existingItemIndex] = {
+              ...order.items[existingItemIndex],
+              ...newItem,
+              quantity: order.items[existingItemIndex].quantity + newItem.quantity,
+            };
+          } else {
+            // 새 항목 추가
+            order.items.push(newItem);
+          }
+        });
+      }
     }
 
-    console.log("Updated table:", updatedTable);
-    return NextResponse.json({ message: "Table updated successfully", table: updatedTable });
+    // totalAmount 재계산
+    order.totalAmount = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    // 주문 상태 업데이트
+    const statusPriority = ["pending", "preparing", "served", "completed"];
+    order.status = order.items.reduce((maxStatus, item) => {
+      return statusPriority.indexOf(item.status) < statusPriority.indexOf(maxStatus)
+        ? item.status
+        : maxStatus;
+    }, "completed");
+
+    await order.save();
+    console.log("Order saved to DB:", order);
+
+    // 테이블 상태 업데이트
+    const table = await Table.findOneAndUpdate(
+      { restaurantId, tableId },
+      { $set: { status: order.status === "completed" ? "empty" : "occupied" } },
+      { new: true }
+    );
+
+    return NextResponse.json({ message: "Order updated successfully", order, table });
   } catch (error) {
-    console.error("Failed to update table:", error);
-    return NextResponse.json({ error: "Failed to update table" }, { status: 500 });
+    console.error("Failed to update order:", error);
+    return NextResponse.json(
+      { error: "Failed to update order", details: error.message },
+      { status: 500 }
+    );
   }
 }
