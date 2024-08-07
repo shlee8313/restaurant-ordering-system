@@ -10,6 +10,7 @@ import AdvancedTableLayout from "../../components/AdvancedTableLayout";
 import { toast } from "react-toastify";
 import useOrderQueueStore from "../../store/useOrderQueueStore";
 import { v4 as uuidv4 } from "uuid";
+
 /**
  * 
  
@@ -27,8 +28,14 @@ export default function AdminOrderPage() {
     updateTableOrder,
     updateOrderItemStatus,
   } = useTableStore();
-  const { addToOrderQueue, updateOrderStatus, getActiveOrders, getOrderPosition } =
-    useOrderQueueStore();
+  const {
+    orderQueue,
+    initializeOrderQueue,
+    addToOrderQueue,
+    updateOrderStatus,
+    removeFromQueue,
+    reorderQueue,
+  } = useOrderQueueStore();
 
   /**
    *
@@ -36,6 +43,7 @@ export default function AdminOrderPage() {
   const { setCurrentPage } = useNavigationStore();
   const [socket, setSocket] = useState(null);
   const router = useRouter();
+  const [activeTabsState, setActiveTabsState] = useState({});
   /**
    * 초기 테이블 생성 함수
    * 레스토랑에 기본 테이블 레이아웃을 설정합니다.
@@ -173,7 +181,23 @@ export default function AdminOrderPage() {
       toast.error(`테이블 정보를 불러오는데 실패했습니다: ${error.message}`);
     }
   }, [restaurant?.restaurantId, restaurantToken, setTables, createInitialTables]);
+  /**
+   *
+   */
+  // 활성 주문을 가져오는 함수
+  const fetchActiveOrders = useCallback(async () => {
+    if (!restaurant?.restaurantId) return;
 
+    try {
+      const response = await fetch(`/api/orders?restaurantId=${restaurant.restaurantId}`);
+      if (!response.ok) throw new Error("Failed to fetch active orders");
+      const activeOrders = await response.json();
+      initializeOrderQueue(activeOrders);
+    } catch (error) {
+      console.error("Error fetching active orders:", error);
+      toast.error("활성 주문을 불러오는데 실패했습니다.");
+    }
+  }, [restaurant?.restaurantId, initializeOrderQueue]);
   /**
    * 소켓 초기화 함수
    * 실시간 주문 업데이트를 위한 웹소켓 연결을 설정합니다.
@@ -219,20 +243,20 @@ export default function AdminOrderPage() {
 
       // 새로운 주문 객체 생성
       const newOrder = {
-        _id: uuidv4(), // 새로운 고유 ID 생성
+        _id: data._id,
         items: data.items,
         status: data.status || "pending",
         orderedAt: data.orderedAt || new Date().toISOString(),
         totalAmount: totalAmount,
       };
 
-      // 테이블 상태 업데이트
       updateTable(data.tableId, {
         order: newOrder,
         status: "occupied",
       });
 
       // 주문 대기열에 새 주문 추가
+      console.log(newOrder);
       addToOrderQueue({
         _id: newOrder._id,
         tableId: data.tableId,
@@ -257,8 +281,20 @@ export default function AdminOrderPage() {
     }
 
     console.log("Initializing AdminOrderPage...");
+    fetchActiveOrders();
     fetchTables();
-
+    /**
+     *
+     */
+    // localStorage에서 주문 대기열 상태 복원
+    // const storedState = localStorage.getItem("order-queue-storage");
+    // if (storedState) {
+    //   const parsedState = JSON.parse(storedState);
+    //   setFullState(parsedState.state);
+    // }
+    /**
+     *
+     */
     const newSocket = initializeSocket();
     if (newSocket) {
       newSocket.on("newOrder", handleNewOrder);
@@ -332,10 +368,9 @@ export default function AdminOrderPage() {
    *  {number} itemIndex - 변경할 항목의 인덱스
    */
   const handleOrderStatusChange = useCallback(
-    async (tableId, order, itemIndex) => {
-      const currentItem = order.items[itemIndex];
+    async (tableId, order) => {
       let newStatus;
-      switch (currentItem.status) {
+      switch (order.status) {
         case "pending":
           newStatus = "preparing";
           break;
@@ -358,49 +393,41 @@ export default function AdminOrderPage() {
           body: JSON.stringify({
             restaurantId: restaurant.restaurantId,
             tableId: tableId,
-            itemId: currentItem.id,
+            orderId: order._id,
             newStatus: newStatus,
           }),
         });
 
+        console.log("Order ID type:", typeof order._id); // 추가된 로그
+        const responseData = await response.json();
+
         if (!response.ok) {
-          throw new Error("Failed to update order status");
+          console.error("Server response:", responseData);
+          throw new Error(responseData.error || "Failed to update order status");
         }
 
-        const updatedData = await response.json();
-
-        // 업데이트된 items 배열 생성
-        const updatedItems = order.items.map((item) =>
-          item.id === currentItem.id ? { ...item, status: newStatus } : item
-        );
-
-        // totalAmount 재계산
-        // const totalAmount = updatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        console.log("Updated order data:", responseData);
 
         // 로컬 상태 업데이트
-        updateTableOrder(tableId, {
-          ...order,
-          items: updatedItems,
-        });
+        updateTableOrder(tableId, responseData.order);
+        // 주문 대기열 상태 업데이트
+        updateOrderStatus(order._id, newStatus);
 
-        // 주문 대기열 상태 업데이트 로직
-        const allItemsServedOrCompleted = updatedItems.every(
-          (item) => item.status === "served" || item.status === "completed"
-        );
-
-        if (allItemsServedOrCompleted) {
-          updateOrderStatus(order._id, "served");
+        // 주문이 완료되면 대기열에서 제거
+        if (newStatus === "served") {
+          removeFromQueue(order._id);
         }
+        // 전체 테이블 상태 새로고침
+        await fetchTables();
 
         toast.success(`주문 상태가 '${newStatus}'로 업데이트되었습니다.`);
       } catch (error) {
         console.error("Error updating order status:", error);
-        toast.error("주문 상태 업데이트에 실패했습니다.");
+        toast.error(`주문 상태 업데이트에 실패했습니다: ${error.message}`);
       }
     },
-    [updateTableOrder, updateOrderStatus, restaurant?.restaurantId]
+    [updateTableOrder, restaurant?.restaurantId, fetchTables]
   );
-
   /**
    * 호출 완료 핸들러
    * 가격이 0인 항목(호출)을 주문에서 제거합니다.
@@ -409,15 +436,35 @@ export default function AdminOrderPage() {
    *  {number} index - 제거할 항목의 인덱스
    */
   const handleCallComplete = useCallback(
-    (tableId, order, index) => {
-      const updatedItems = order.items.filter((_, idx) => idx !== index);
-      const updatedOrder = {
-        ...order,
-        items: updatedItems,
-      };
-      updateTableOrder(tableId, updatedOrder);
+    (tableId, order) => {
+      if (order.items.every((item) => item.price === 0)) {
+        // 호출 주문 제거
+        updateTableOrder(tableId, { ...order, status: "completed" });
+
+        // 테이블의 orders 배열에서 해당 주문 제거
+        const updatedTable = tables.find((table) => table.tableId === tableId);
+        if (updatedTable) {
+          const updatedOrders = updatedTable.orders.filter((o) => o._id !== order._id);
+          updateTable(tableId, { orders: updatedOrders });
+        }
+
+        // 탭 상태 업데이트
+        setActiveTabsState((prevState) => {
+          const newState = { ...prevState };
+          if (newState[tableId] !== undefined) {
+            // 현재 활성 탭이 삭제된 주문보다 뒤에 있다면 인덱스를 하나 줄임
+            if (newState[tableId] > 0) {
+              newState[tableId] -= 1;
+            } else {
+              // 첫 번째 탭이 삭제되면 다음 탭을 활성화
+              newState[tableId] = 0;
+            }
+          }
+          return newState;
+        });
+      }
     },
-    [updateTableOrder]
+    [updateTableOrder, updateTable, tables]
   );
   /**
    * 숫자 포맷팅 함수
@@ -457,71 +504,266 @@ export default function AdminOrderPage() {
         return "알 수 없음";
     }
   };
+  /**
+   *
+   */
 
+  const handleTabChange = useCallback((tableId, tabIndex) => {
+    setActiveTabsState((prevState) => ({
+      ...prevState,
+      [tableId]: tabIndex,
+    }));
+  }, []);
+  /**
+   *
+   */
+  const handlePayment = useCallback(
+    async (tableId) => {
+      try {
+        const response = await fetch("/api/orders", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            restaurantId: restaurant.restaurantId,
+            tableId: tableId,
+            action: "completeAllOrders",
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to complete orders");
+        }
+
+        const result = await response.json();
+        console.log("Payment result:", result);
+
+        // 테이블 상태 업데이트
+        updateTable(tableId, { status: "empty", orders: [] });
+
+        // 주문 대기열에서 해당 테이블의 주문 제거
+        const updatedQueue = orderQueue.filter((order) => order.tableId !== tableId);
+        initializeOrderQueue(updatedQueue);
+
+        toast.success(`테이블 ${tableId}의 모든 주문이 완료되었습니다.`);
+
+        // 테이블 정보 새로고침
+        await fetchTables();
+      } catch (error) {
+        console.error("Error completing orders:", error);
+        toast.error("주문 완료 처리 중 오류가 발생했습니다.");
+      }
+    },
+    [restaurant, updateTable, orderQueue, initializeOrderQueue, fetchTables]
+  );
+
+  /**
+   *
+   */
+  const renderTableContent = useCallback(
+    (table) => {
+      console.log("Rendering table content for table:", table);
+
+      // 주문 데이터 구조 확인
+      const orders = table.orders || (table.order ? [table.order] : []);
+      console.log("Table orders:", orders);
+      const tableTotalAmount = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      const activeTab = activeTabsState[table.tableId] ?? orders.length - 1;
+      return (
+        <div className="mt-2 w-full h-full flex flex-col">
+          {orders.length > 0 ? (
+            <>
+              <div className="flex border-b">
+                {orders.map((order, index) => {
+                  const orderIndex = orderQueue.findIndex(
+                    (queueOrder) => queueOrder._id === order._id
+                  );
+
+                  return (
+                    <div
+                      key={order._id || index}
+                      className={`py-2 px-4 text-sm font-semibold rounded-t-lg mr-1 ${
+                        activeTab === index
+                          ? "bg-white text-blue-600 border-t-2 border-l-2 border-r-2 border-blue-400 -mb-px z-10"
+                          : "bg-gray-300 text-gray-600 border-t-2 border-l-2 border-r-2 border-gray-300 hover:bg-gray-300 border"
+                      }`}
+                      onClick={() => handleTabChange(table.tableId, index)}
+                    >
+                      {/* 주문 #{index + 1} */}
+                      주문 #
+                      {orderQueue.length > 0 && orderIndex >= 0 && (
+                        <span className="px-2 py-1 rounded-full bg-pink-600 text-white">
+                          {orderIndex + 1}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="bg-white border-2 border-blue-400 rounded-b-lg rounded-tr-lg flex-grow overflow-x-hidden overflow-y-auto custom-scrollbar">
+                <div className="p-1">
+                  {orders.map((order, orderIndex) => (
+                    <div
+                      key={order._id || orderIndex}
+                      className={`${activeTab === orderIndex ? "block " : "hidden "}`}
+                    >
+                      {/* 주문 순서 표시 추가 */}
+                      {/* <span className="text-sm font-semibold">
+                        주문 순서:{" "}
+                        {orderQueue.findIndex((queueOrder) => queueOrder._id === order._id) + 1}
+                      </span> */}
+                      <ul className="text-sm">
+                        {order.items &&
+                          order.items.map((item, itemIndex) => (
+                            <li key={item._id || itemIndex} className="border-b border-blue-200">
+                              <div className="mt-1 mx-3 flex justify-between items-center p-2">
+                                <div className="flex-grow flex items-center">
+                                  <span>{item.name}</span>
+                                  <span className="ml-2 bg-gray-600 text-white text-md font-medium px-2 py-1 rounded-lg">
+                                    {item.quantity}
+                                  </span>
+                                </div>
+                                <div>{formatNumber(item.price * item.quantity)}원</div>
+                              </div>
+                            </li>
+                          ))}
+                      </ul>
+                      {order.items && order.items.every((item) => item.price === 0) ? (
+                        <button
+                          className="mt-2 text-sm px-2 py-1 rounded-xl bg-gray-800 text-white right-0"
+                          onClick={() => handleCallComplete(table.tableId, order)}
+                        >
+                          호출
+                        </button>
+                      ) : (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <button
+                              className={`mt-2 text-sm px-3 py-1 rounded-lg ml-auto ${getStatusColor(
+                                order.status
+                              )}`}
+                              onClick={
+                                order.status !== "served"
+                                  ? () => handleOrderStatusChange(table.tableId, order)
+                                  : undefined
+                              }
+                              disabled={order.status === "served"}
+                            >
+                              {getStatusText(order.status)}
+                            </button>
+                          </div>
+
+                          {/* <div className="mt-2 font-bold text-right p-2 border-t border-gray-200">
+                            {/* 총액: {formatNumber(order.totalAmount)}원 */}
+                          {/* 총액: {formatNumber(tableTotalAmount)}원 */}
+                          {/* </div> */}
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-grow"></div>
+              {/* 테이블 전체 총액 표시 */}
+              <div className="mt-2 font-bold text-right p-2 border-t border-gray-200">
+                <button
+                  onClick={() => handlePayment(table.tableId)}
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors mr-4"
+                >
+                  결제
+                </button>
+                <span>총액: {formatNumber(tableTotalAmount)}원</span>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm p-4">주문 없음</p>
+          )}
+        </div>
+      );
+    },
+    [
+      activeTabsState,
+      handleTabChange,
+      handleOrderStatusChange,
+      handleCallComplete,
+      getStatusColor,
+      getStatusText,
+      formatNumber,
+      orderQueue,
+    ]
+  );
   /**
    * 테이블 내용 렌더링 함수
    * 각 테이블의 주문 정보를 렌더링합니다.
   
    */
-  const renderTableContent = useCallback(
-    (table) => {
-      const order = table.order;
-      console.log(order);
-      return (
-        <div className="w-full h-full flex flex-col">
-          <div className="flex-grow overflow-y-auto custom-scrollbar">
-            {order ? (
-              <div>
-                <ul className="text-sm">
-                  {order.items.map((item, index) => (
-                    <li key={index} className="border-b border-blue-300">
-                      <div className="flex justify-between items-center p-2 border-b">
-                        <span className="flex-grow flex items-center">
-                          <span>{item.name}</span>
-                          <span className="ml-2 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-                            {item.quantity}
-                          </span>
-                        </span>
-                        <div className="flex">
-                          {item.price === 0 ? (
-                            <button
-                              className="text-sm px-2 py-1 rounded-xl mr-2 bg-gray-800 text-white"
-                              onClick={() => handleCallComplete(table.tableId, order, index)}
-                            >
-                              호출
-                            </button>
-                          ) : (
-                            <div className="relative">
-                              <button
-                                className={`text-sm px-2 py-1 rounded-xl mr-2 ${getStatusColor(
-                                  item.status
-                                )}`}
-                                onClick={() => handleOrderStatusChange(table.tableId, order, index)}
-                              >
-                                {getStatusText(item.status)}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="text-sm">주문 없음</p>
-            )}
-          </div>
-          {order && (
-            <div className="mt-2 font-bold text-right p-2 border-t border-gray-200">
-              총액: {formatNumber(order.totalAmount)}원
-            </div>
-          )}
-        </div>
-      );
-    },
-    [handleCallComplete, handleOrderStatusChange]
-  );
+  // const renderTableContent = useCallback(
+  //   (table) => {
+  //     const order = table.order;
+  //     console.log(order);
+  //     return (
+  //       <div className="mt-2 w-full h-full flex flex-col ">
+  //         <div className="flex-grow  overflow-x-hidden overflow-y-auto custom-scrollbar">
+  //           {order ? (
+  //             <div className=" ">
+  //               <ul className="text-sm">
+  //                 {order.items.map((item, index) => (
+  //                   <li key={index} className="border-b border-blue-300 ">
+  //                     <div className="mt-2 mx-3 flex justify-evenly items-center p-2 border-b ">
+  //                       <div className="flex-grow flex items-center">
+  //                         <span>{item.name}</span>
+  //                         <span className="ml-2 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+  //                           {item.quantity}
+  //                         </span>
+  //                       </div>
+  //                       <div className="flex items-center">
+  //                         {item.price === 0 ? (
+  //                           <button
+  //                             className="text-sm px-2 py-1 rounded-xl mr-2 bg-gray-800 text-white"
+  //                             onClick={() => handleCallComplete(table.tableId, order, index)}
+  //                           >
+  //                             호출
+  //                           </button>
+  //                         ) : (
+  //                           <div className="relative inline-block">
+  //                             {item.status !== "served" && item.status !== "completed" && (
+  //                               <div className="absolute -top-3 -right-3 bg-gray-500 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center overflow-hidden shadow-md z-10">
+  //                                 <span className="text-center leading-none">
+  //                                   {getOrderPosition(order._id)}
+  //                                 </span>
+  //                               </div>
+  //                             )}
+  //                             <button
+  //                               className={`text-sm px-2 py-1 rounded-xl ${getStatusColor(
+  //                                 order.status
+  //                               )}`}
+  //                               onClick={() => handleOrderStatusChange(table.tableId, order, index)}
+  //                             >
+  //                               {getStatusText(order.status)}
+  //                             </button>
+  //                           </div>
+  //                         )}
+  //                       </div>
+  //                     </div>
+  //                   </li>
+  //                 ))}
+  //               </ul>
+  //             </div>
+  //           ) : (
+  //             <p className="text-sm">주문 없음</p>
+  //           )}
+  //         </div>
+  //         {order && (
+  //           <div className="mt-2 font-bold text-right p-2 border-t border-gray-200">
+  //             총액: {formatNumber(order.totalAmount)}원
+  //           </div>
+  //         )}
+  //       </div>
+  //     );
+  //   },
+  //   [handleCallComplete, handleOrderStatusChange]
+  // );
   /**
    *
    */
@@ -535,7 +777,7 @@ export default function AdminOrderPage() {
         isEditMode={isEditMode}
         onSaveLayout={handleSaveLayout}
         onUpdateTable={handleUpdateTable}
-        renderContent={renderTableContent}
+        renderContent={(table) => renderTableContent(table, handleTabChange)}
         onAddTable={addTable}
         onRemoveTable={removeTable}
       />

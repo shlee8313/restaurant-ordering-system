@@ -40,7 +40,17 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         {children}
-        <ToastContainer />
+        <ToastContainer
+          position="top-center" // 하단 중앙에 위치하도록 설정
+          autoClose={5000} // 5초 후 자동 닫힘
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
       </body>
     </html>
   );

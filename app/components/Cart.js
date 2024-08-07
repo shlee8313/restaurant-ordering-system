@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, ShoppingCart } from "lucide-react";
 
 export default function Cart({
   items,
@@ -17,12 +17,28 @@ export default function Cart({
     connectSocket();
     placeOrder();
   };
+  /**
+   *
+   */
+  console.log(items);
+  const formatNumber = (number) => {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+  /**
+   *
+   */
+  const calculateTotal = () => {
+    return items.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
+  /*
+   *
+   */
 
   const CartContent = () => (
     <>
       <div className="space-y-2 mb-4">
         {items.map((item) => (
-          <div key={item.id} className="border p-2 rounded flex justify-between items-center">
+          <div key={item.id} className="border p-2 rounded flex justify-between items-center mr-5">
             <span>{item.name}</span>
             <div>
               <button
@@ -39,8 +55,16 @@ export default function Cart({
                 +
               </button>
             </div>
+            <span>
+              {formatNumber(item.quantity * item.price)} <span className="text-xs "> 원</span>
+            </span>
           </div>
         ))}
+        <div className="mt-5 p-2  mr-5 text-right border  rounded-lg shadow-sm">
+          <span className="text-xs">총합계: </span>
+          <span className="text-lg font-semibold">{formatNumber(calculateTotal())}</span>
+          <span className="text-xs "> 원</span>
+        </div>
       </div>
     </>
   );
@@ -50,9 +74,16 @@ export default function Cart({
       <>
         <button
           onClick={() => setIsCartOpen(true)}
-          className="fixed bottom-4 right-4 bg-blue-500 text-white p-4 rounded-full shadow-lg z-50"
+          className="fixed bottom-4 right-4 bg-gray-600 text-white p-4 rounded-full shadow-lg z-50 "
         >
-          장바구니 ({items.length})
+          <div className="relative">
+            <ShoppingCart className="w-8 h-8" />
+            {items.length > 0 && (
+              <span className="absolute top-1 right-1 bg-white text-gray-600 text-sm font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {items.length}
+              </span>
+            )}
+          </div>
         </button>
 
         {isCartOpen && (

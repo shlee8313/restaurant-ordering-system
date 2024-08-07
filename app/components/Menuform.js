@@ -67,7 +67,7 @@ export default function MenuForm({ menu, onSave }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-9xl mx-auto p-6 bg-gray-100 rounded-lg shadow-lg"
+      className="max-w-9xl mx-auto p-6 bg-gray-100 rounded-lg shadow-lg pb-20"
     >
       {categories.map((category, categoryIndex) => (
         <div key={category.id} className="mb-8 bg-white p-6 rounded-lg shadow">
@@ -187,7 +187,7 @@ export default function MenuForm({ menu, onSave }) {
           </button>
         </div>
       ))}
-      <div className="flex justify-between">
+      <div className="fixed bottom-0 right-20 bg-white shadow-lg flex justify-between">
         <button
           type="button"
           onClick={addCategory}

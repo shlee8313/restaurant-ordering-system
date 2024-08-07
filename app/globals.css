@@ -56,3 +56,18 @@ body {
   -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
   scroll-behavior: smooth; /* 스크롤 동작 부드럽게 */
 }
+
+/* Custom scrollbar styling (if needed) */
+.custom-scrollable {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
+}
+
+.custom-scrollable::-webkit-scrollbar {
+  display: none; /* Hide scrollbar on Webkit browsers (Chrome, Safari) */
+}
+
+.custom-scrollable {
+  -ms-overflow-style: none; /* Hide scrollbar on Internet Explorer and Edge */
+}

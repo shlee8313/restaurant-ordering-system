@@ -6,7 +6,7 @@ import useTableStore from "../../store/useTableStore";
 import useNavigationStore from "../../store/useNavigationStore";
 import useAuthStore from "../../store/useAuthStore";
 import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
-import useSidebarStore from "../../store/useSideBarStore";
+import useSidebarStore from "../../store/usesidebarStore";
 
 import { useRouter } from "next/navigation";
 const SideNav = () => {

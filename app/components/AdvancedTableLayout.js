@@ -37,7 +37,7 @@ const AdvancedTableLayout = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[calc(100vh-80px)] bg-gray-100 overflow-hidden border border-gray-300 rounded-lg"
+      className="relative w-full h-[calc(100vh-80px)] bg-gray-100  border border-gray-300 rounded-lg"
     >
       {tables.map((table) => (
         <Rnd
@@ -52,7 +52,7 @@ const AdvancedTableLayout = ({
           minWidth={80}
           minHeight={80}
         >
-          <div className="w-full h-full bg-gray-200 rounded-lg shadow-lg flex items-center justify-center ">
+          <div className="w-full h-full bg-gray-200 rounded-lg shadow-lg flex flex-col ">
             <div className="absolute top-2 left-2 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold">
               {table.tableId}
             </div>
@@ -64,7 +64,7 @@ const AdvancedTableLayout = ({
                 X
               </button>
             )}
-            <div className="w-full h-full p-2 pt-10">{renderContent(table)}</div>
+            <div className="w-full h-full p-2 pt-10 ">{renderContent(table)}</div>
           </div>
         </Rnd>
       ))}

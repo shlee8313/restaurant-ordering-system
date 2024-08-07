@@ -8,7 +8,7 @@ import useOrderStore from "../../store/orderStore";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
-
+import { v4 as uuidv4 } from "uuid";
 /**
  * 
  
@@ -165,7 +165,9 @@ export default function MenuPage() {
       return;
     }
 
+    const tempId = uuidv4(); // 임시 ID 생성
     const order = {
+      tempId,
       restaurantId,
       tableId: Number(tableId), // Number(tableId) tableId를 숫자로 변환
       items: cart,
@@ -182,12 +184,14 @@ export default function MenuPage() {
       });
 
       if (res.ok) {
+        // console.log(res);
         const newOrder = await res.json();
+        console.log("placeOrder response", newOrder);
         addOrder(newOrder);
         setCart([]);
         // alert("주문이 완료되었습니다!");
         toast.success("주문이 완료되었습니다!");
-        socket.emit("newOrder", order);
+        socket.emit("newOrder", newOrder);
       } else {
         toast.error("주문 처리 중 오류가 발생했습니다.");
       }
@@ -287,7 +291,7 @@ export default function MenuPage() {
         alert("주문 처리 중 오류가 발생했습니다.");
       }
     },
-    [isConnected, socket, restaurantId, tableId, addOrder, connectSocket]
+    [isConnected, socket, restaurantId, addOrder, connectSocket]
   );
 
   if (loading) return <LoadingSpinner />;
