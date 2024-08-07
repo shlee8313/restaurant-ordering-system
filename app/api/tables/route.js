@@ -13,10 +13,10 @@ import { ObjectId } from "mongodb"; // 파일 상단에 추가
 // GET: 테이블 정보 가져오기
 export async function GET(req) {
   try {
-    console.log("Received GET request:", req.url);
+    // console.log("Received GET request:", req.url);
     const url = new URL(req.url);
     const restaurantId = url.searchParams.get("restaurantId");
-    console.log("Extracted restaurantId:", restaurantId);
+    // console.log("Extracted restaurantId:", restaurantId);
 
     if (!restaurantId) {
       console.warn("Missing restaurantId parameter");
@@ -25,7 +25,7 @@ export async function GET(req) {
 
     await dbConnect();
     let tables = await Table.find({ restaurantId }).sort("tableId").lean();
-    console.log("Fetched tables from database:", tables);
+    // console.log("Fetched tables from database:", tables);
 
     // Fetch active orders for each table
     const tablesWithOrders = await Promise.all(
@@ -49,7 +49,7 @@ export async function GET(req) {
       })
     );
 
-    console.log("Tables with active orders:", tablesWithOrders);
+    // console.log("Tables with active orders:", tablesWithOrders);
     return NextResponse.json(tablesWithOrders);
   } catch (error) {
     console.error("Failed to fetch tables:", error);
@@ -152,7 +152,7 @@ export async function PATCH(req) {
     const { restaurantId, tableId, orderId, newStatus } = body;
 
     if (!restaurantId || !tableId || !orderId || !newStatus) {
-      console.warn("Missing required parameters:", { restaurantId, tableId, orderId, newStatus });
+      // console.warn("Missing required parameters:", { restaurantId, tableId, orderId, newStatus });
       return NextResponse.json(
         {
           error: "Missing required parameters",
@@ -176,7 +176,7 @@ export async function PATCH(req) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    console.log("Updated order:", order);
+    // console.log("Updated order:", order);
 
     // 테이블의 모든 주문 가져오기
     const allOrders = await Order.find({ restaurantId, tableId, status: { $ne: "completed" } });
@@ -194,7 +194,7 @@ export async function PATCH(req) {
       return NextResponse.json({ error: "Table not found" }, { status: 404 });
     }
 
-    console.log("Updated table:", table);
+    // console.log("Updated table:", table);
 
     // id 필드 명시적 추가
     const responseOrder = {

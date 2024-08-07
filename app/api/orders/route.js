@@ -13,7 +13,7 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const restaurantId = searchParams.get("restaurantId");
     const date = searchParams.get("date");
-    console.log("req date", date);
+    // console.log("req date", date);
 
     if (!restaurantId) {
       return NextResponse.json({ error: "Restaurant ID is required" }, { status: 400 });
@@ -52,7 +52,7 @@ export async function POST(request) {
 
   try {
     const orderData = await request.json();
-    console.log(orderData);
+    // console.log(orderData);
     // Calculate total amount
     const totalAmount = orderData.items.reduce(
       (total, item) => total + item.price * item.quantity,
@@ -73,11 +73,11 @@ export async function POST(request) {
       totalAmount,
       tempId: orderData.tempId, // 임시 ID 저장 (필요시)
     };
-    console.log(orderForSaving);
+    // console.log(orderForSaving);
     const newOrder = new Order(orderForSaving);
     // console.log(newOrder);
     const savedOrder = await newOrder.save();
-    console.log(savedOrder);
+    // console.log(savedOrder);
     // Socket.io 서버 생성 및 이벤트 발송
 
     // Emit socket event for new order

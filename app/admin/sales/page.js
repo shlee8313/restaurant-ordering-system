@@ -8,11 +8,7 @@ import * as XLSX from "xlsx";
 import useAuthStore from "@/app/store/useAuthStore";
 import { useRouter } from "next/navigation";
 
-/**
- * 
-
- */
-// Tooltip 컴포넌트
+// Tooltip 컴포넌트 (변경 없음)
 const Tooltip = ({ children, content }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -29,36 +25,6 @@ const Tooltip = ({ children, content }) => {
     </div>
   );
 };
-/**
- 
- */
-
-const generateSalesData = () => {
-  const data = [];
-  const startDate = new Date("2024-08-01");
-  const menuItems = ["아메리카노", "카페라떼", "크로플", "녹차", "핫초코", "베이글", "치즈케이크"];
-
-  for (let i = 0; i < 50; i++) {
-    const currentDate = new Date(startDate);
-    currentDate.setDate(startDate.getDate() + i);
-
-    const items = menuItems.map((item) => ({
-      name: item,
-      quantity: Math.floor(Math.random() * 50) + 1,
-      price: Math.floor(Math.random() * 3000) + 3000,
-    }));
-
-    const totalSales = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-
-    data.push({
-      date: currentDate.toISOString().split("T")[0],
-      totalSales,
-      items,
-    });
-  }
-
-  return data;
-};
 
 const SalesCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -73,10 +39,30 @@ const SalesCalendar = () => {
     if (!restaurant) {
       router.push("/restaurant/login");
     } else {
-      setIsLoading(false);
-      setSalesData(generateSalesData());
+      fetchSalesData();
     }
-  }, [restaurant, router]);
+  }, [restaurant, router, currentDate]);
+
+  const fetchSalesData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `/api/sales?restaurantId=${restaurant.restaurantId}&month=${
+          currentDate.getMonth() + 1
+        }&year=${currentDate.getFullYear()}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch sales data");
+      }
+      const data = await response.json();
+      setSalesData(data);
+    } catch (error) {
+      console.error("Failed to fetch sales data:", error);
+      // 여기에 에러 처리 로직을 추가할 수 있습니다 (예: 에러 메시지 표시)
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -91,12 +77,13 @@ const SalesCalendar = () => {
   };
 
   const changeMonth = (increment) => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + increment, 1));
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + increment, 1);
+    setCurrentDate(newDate);
     setSelectedDate(null);
+    // 월이 변경될 때 새로운 데이터를 가져옵니다
+    fetchSalesData();
   };
-  /**
-   *
-   */
+
   const handleDateClick = (day) => {
     const clickedDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(
       2,
@@ -110,11 +97,9 @@ const SalesCalendar = () => {
     const today = new Date();
     setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
     setSelectedDate(today.toISOString().split("T")[0]);
+    fetchSalesData();
   };
-  /**
- * 
 
- */
   const renderCalendarContent = (day) => {
     const dateString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(
       2,
@@ -129,8 +114,7 @@ const SalesCalendar = () => {
         <div className="font-bold mb-2">총 매출: ₩{dailySales.totalSales.toLocaleString()}</div>
         {dailySales.items.map((item, index) => (
           <div key={index}>
-            {item.name}: {item.quantity}
-            {/* (₩{(item.quantity * item.price).toLocaleString()}) */}
+            {item.name}: {item.quantity} (₩{item.sales.toLocaleString()})
           </div>
         ))}
       </div>
@@ -153,7 +137,7 @@ const SalesCalendar = () => {
                 {item.name}: {item.quantity}
               </div>
             ))}
-            {dailySales.items.length > 2 && (
+            {dailySales.items.length > 5 && (
               <div className="text-blue-600 font-semibold text-sm">
                 + {dailySales.items.length - 5} more
               </div>
@@ -223,7 +207,7 @@ const SalesCalendar = () => {
       총매출: day.totalSales,
       ...day.items.reduce((acc, item) => {
         acc[`${item.name} 수량`] = item.quantity;
-        acc[`${item.name} 매출`] = item.quantity * item.price;
+        acc[`${item.name} 매출`] = item.sales;
         return acc;
       }, {}),
     }));
@@ -238,7 +222,7 @@ const SalesCalendar = () => {
     <div className="max-w-screen mx-auto p-4 h-full  overflow-hidden mt-3  flex flex-col bg-gray-50">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center space-x-4">
-          <h2 className="text-3xl font-semibold text-gray-800">
+          <h2 className="text-xl font-semibold text-gray-800">
             {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
           </h2>
         </div>

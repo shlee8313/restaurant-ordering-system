@@ -1,75 +1,97 @@
-//file: \app\store\useAuthStore.js
-
 import { create } from "zustand";
 
+const isServer = typeof window === "undefined";
+
+const getLocalStorageItem = (key) => {
+  if (isServer) return null;
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.error(`Error reading ${key} from localStorage:`, error);
+    return null;
+  }
+};
+
+const setLocalStorageItem = (key, value) => {
+  if (isServer) return;
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.error(`Error setting ${key} in localStorage:`, error);
+  }
+};
+
+const removeLocalStorageItem = (key) => {
+  if (isServer) return;
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.error(`Error removing ${key} from localStorage:`, error);
+  }
+};
+
 const useAuthStore = create((set) => ({
-  // User state
   userToken: null,
   user: null,
-
-  // Restaurant state
   restaurant: null,
   restaurantToken: null,
 
-  // Actions for user
-  setUserToken: (token) => set({ userToken: token }),
-  setUser: (user) => set({ user }),
-  logoutUser: () => set({ userToken: null, user: null }),
+  setUserToken: (token) => {
+    setLocalStorageItem("authToken", token);
+    set({ userToken: token });
+  },
+  setUser: (user) => {
+    setLocalStorageItem("user", JSON.stringify(user));
+    set({ user });
+  },
+  logoutUser: () => {
+    removeLocalStorageItem("authToken");
+    removeLocalStorageItem("user");
+    set({ userToken: null, user: null });
+  },
 
-  // Actions for restaurant
   setRestaurant: (restaurant) => {
-    localStorage.setItem("restaurant", JSON.stringify(restaurant));
+    setLocalStorageItem("restaurant", JSON.stringify(restaurant));
     set({ restaurant });
   },
   setRestaurantToken: (token) => {
-    localStorage.setItem("restaurantToken", token);
+    setLocalStorageItem("restaurantToken", token);
     set({ restaurantToken: token });
   },
   logoutRestaurant: () => {
-    localStorage.removeItem("restaurant");
-    localStorage.removeItem("restaurantToken");
+    removeLocalStorageItem("restaurant");
+    removeLocalStorageItem("restaurantToken");
     set({ restaurant: null, restaurantToken: null });
   },
 
-  // Full logout for both user and restaurant
   fullLogout: () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
-    localStorage.removeItem("restaurant");
-    localStorage.removeItem("restaurantToken");
+    removeLocalStorageItem("authToken");
+    removeLocalStorageItem("user");
+    removeLocalStorageItem("restaurant");
+    removeLocalStorageItem("restaurantToken");
     set({ userToken: null, user: null, restaurant: null, restaurantToken: null });
   },
 
-  // Initialize state from localStorage if available
   initializeState: () => {
-    try {
-      const storedRestaurant = localStorage.getItem("restaurant");
-      const storedRestaurantToken = localStorage.getItem("restaurantToken");
-      const storedUserToken = localStorage.getItem("authToken");
-      const storedUser = localStorage.getItem("user");
+    if (isServer) return;
 
-      if (storedRestaurant) {
-        set({ restaurant: JSON.parse(storedRestaurant) });
-      }
+    const storedRestaurant = getLocalStorageItem("restaurant");
+    const storedRestaurantToken = getLocalStorageItem("restaurantToken");
+    const storedUserToken = getLocalStorageItem("authToken");
+    const storedUser = getLocalStorageItem("user");
 
-      if (storedRestaurantToken) {
-        set({ restaurantToken: storedRestaurantToken });
-      }
-
-      if (storedUserToken) {
-        set({ userToken: storedUserToken });
-      }
-
-      if (storedUser) {
-        set({ user: JSON.parse(storedUser) });
-      }
-    } catch (error) {
-      console.error("Failed to initialize state from localStorage:", error);
-    }
+    set({
+      restaurant: storedRestaurant ? JSON.parse(storedRestaurant) : null,
+      restaurantToken: storedRestaurantToken || null,
+      userToken: storedUserToken || null,
+      user: storedUser ? JSON.parse(storedUser) : null,
+    });
   },
 }));
 
-// Initialize state when the store is created
-useAuthStore.getState().initializeState();
+// 클라이언트 사이드에서만 initializeState 실행
+if (!isServer) {
+  useAuthStore.getState().initializeState();
+}
 
 export default useAuthStore;

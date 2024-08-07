@@ -12,7 +12,8 @@ import AdvancedTableLayout from "../../components/AdvancedTableLayout";
 import { toast } from "react-toastify";
 import useOrderQueueStore from "../../store/useOrderQueueStore";
 import { v4 as uuidv4 } from "uuid";
-
+import useSalesStore from "@/app/store/useSalesStore";
+import { format } from "date-fns";
 /**
  * 
  
@@ -46,6 +47,7 @@ export default function AdminOrderPage() {
   const [socket, setSocket] = useState(null);
   const router = useRouter();
   const [activeTabsState, setActiveTabsState] = useState({});
+  const { todaySales, setTodaySales } = useSalesStore();
   /**
    * 초기 테이블 생성 함수
    * 레스토랑에 기본 테이블 레이아웃을 설정합니다.
@@ -79,7 +81,7 @@ export default function AdminOrderPage() {
       {
         restaurantId: restaurant.restaurantId,
         tableId: 3,
-        x: 650,
+        x: 750,
         y: 50,
         width: 300,
         height: 300,
@@ -106,7 +108,7 @@ export default function AdminOrderPage() {
       {
         restaurantId: restaurant.restaurantId,
         tableId: 6,
-        x: 650,
+        x: 750,
         y: 400,
         width: 300,
         height: 300,
@@ -150,65 +152,33 @@ export default function AdminOrderPage() {
    *
    */
   /**
-   * 테이블 정보 fetch 함수
-   * 서버로부터 현재 레스토랑의 테이블 정보를 가져옵니다.
-   * 테이블이 없으면 초기 테이블을 생성합니다.
-   *
+   * fetchTodaySales 함수
+   * 오늘의 매출 데이터를 가져옵니다.
    */
-  // const fetchTables = useCallback(async () => {
-  //   if (!restaurant?.restaurantId) {
-  //     console.error("Restaurant ID is not available");
-  //     return;
-  //   }
 
-  //   try {
-  //     const response = await fetch(`/api/tables?restaurantId=${restaurant.restaurantId}`, {
-  //       headers: {
-  //         Authorization: `Bearer ${restaurantToken}`,
-  //       },
-  //     });
-  //     if (!response.ok) {
-  //       throw new Error("Failed to fetch tables");
-  //     }
-  //     const data = await response.json();
-  //     console.log("Fetched tables:", data);
-
-  //     // 주문이 있는 테이블만 주문 큐에 추가
-
-  //     /**
-  //      *
-  //      */
-  //     if (data.length === 0) {
-  //       await createInitialTables();
-  //     } else {
-  //       setTables(data);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching tables:", error);
-  //     toast.error(`테이블 정보를 불러오는데 실패했습니다: ${error.message}`);
-  //   }
-  // }, [restaurant?.restaurantId, restaurantToken, setTables, createInitialTables]);
-  // /**
-  //  *
-  //  */
-  // // 활성 주문을 가져오는 함수
-  // const fetchActiveOrders = useCallback(async () => {
-  //   if (!restaurant?.restaurantId) return;
-
-  //   try {
-  //     const response = await fetch(`/api/orders?restaurantId=${restaurant.restaurantId}`);
-  //     if (!response.ok) throw new Error("Failed to fetch active orders");
-  //     const activeOrders = await response.json();
-  //     initializeOrderQueue(activeOrders);
-  //   } catch (error) {
-  //     console.error("Error fetching active orders:", error);
-  //     toast.error("활성 주문을 불러오는데 실패했습니다.");
-  //   }
-  // }, [restaurant?.restaurantId, initializeOrderQueue]);
+  const fetchTodaySales = async () => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    try {
+      const response = await fetch(
+        `/api/sales/todaySales?restaurantId=${restaurant.restaurantId}&date=${today}`
+      );
+      const data = await response.json();
+      console.log(data);
+      if (response.ok) {
+        setTodaySales(data.totalSales);
+        console.log(data);
+      } else {
+        console.error("Failed to fetch today's sales:", data.error);
+      }
+    } catch (error) {
+      console.error("Failed to fetch today's sales:", error);
+    }
+  };
+  // fetchTodaySales 함수 끝
 
   /**
-   *
-   *
+   * fetchTablesAndOrders 함수
+   * 테이블과 주문 데이터를 가져오고 초기화합니다.
    */
 
   const fetchTablesAndOrders = useCallback(async () => {
@@ -275,6 +245,8 @@ export default function AdminOrderPage() {
 
       // 주문 대기열 정렬
       reorderQueue();
+      //오늘매출 가져오기
+      fetchTodaySales();
     } catch (error) {
       console.error("Error fetching tables and orders:", error);
       toast.error(`테이블 및 주문 정보를 불러오는데 실패했습니다: ${error.message}`);
@@ -286,16 +258,14 @@ export default function AdminOrderPage() {
     createInitialTables,
     initializeOrderQueue,
     reorderQueue,
+    ,
   ]);
 
+  // fetchTablesAndOrders 함수 끝
+
   /**
-   *
-   *
-   */
-  /**
-   * 소켓 초기화 함수
+   * initializeSocket 함수
    * 실시간 주문 업데이트를 위한 웹소켓 연결을 설정합니다.
-   * 초기화된 소켓 객체 또는 null
    */
   const initializeSocket = useCallback(() => {
     console.log("initializeSocket called");
@@ -374,24 +344,12 @@ export default function AdminOrderPage() {
       return;
     }
 
-    // if(!restaurant.hasTables){
-    //   console.log("No restaurant hasTables or token. Redirecting to login...");
-    //   router.push("/restaurant/login");
-    //   return;
-    // }
     console.log("Initializing AdminOrderPage...");
-    // fetchActiveOrders();
-    // fetchTables();
-    fetchTablesAndOrders();
     /**
      *
      */
-    // localStorage에서 주문 대기열 상태 복원
-    // const storedState = localStorage.getItem("order-queue-storage");
-    // if (storedState) {
-    //   const parsedState = JSON.parse(storedState);
-    //   setFullState(parsedState.state);
-    // }
+    fetchTablesAndOrders();
+
     /**
      *
      */
@@ -660,7 +618,7 @@ export default function AdminOrderPage() {
         initializeOrderQueue(updatedQueue);
 
         toast.success(`테이블 ${tableId}의 모든 주문이 완료되었습니다.`);
-
+        fetchTodaySales();
         // 테이블 정보 새로고침
         // await fetchTablesAndOrders();
       } catch (error) {
@@ -806,80 +764,6 @@ export default function AdminOrderPage() {
       orderQueue,
     ]
   );
-  /**
-   * 테이블 내용 렌더링 함수
-   * 각 테이블의 주문 정보를 렌더링합니다.
-  
-   */
-  // const renderTableContent = useCallback(
-  //   (table) => {
-  //     const order = table.order;
-  //     console.log(order);
-  //     return (
-  //       <div className="mt-2 w-full h-full flex flex-col ">
-  //         <div className="flex-grow  overflow-x-hidden overflow-y-auto custom-scrollbar">
-  //           {order ? (
-  //             <div className=" ">
-  //               <ul className="text-sm">
-  //                 {order.items.map((item, index) => (
-  //                   <li key={index} className="border-b border-blue-300 ">
-  //                     <div className="mt-2 mx-3 flex justify-evenly items-center p-2 border-b ">
-  //                       <div className="flex-grow flex items-center">
-  //                         <span>{item.name}</span>
-  //                         <span className="ml-2 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-  //                           {item.quantity}
-  //                         </span>
-  //                       </div>
-  //                       <div className="flex items-center">
-  //                         {item.price === 0 ? (
-  //                           <button
-  //                             className="text-sm px-2 py-1 rounded-xl mr-2 bg-gray-800 text-white"
-  //                             onClick={() => handleCallComplete(table.tableId, order, index)}
-  //                           >
-  //                             호출
-  //                           </button>
-  //                         ) : (
-  //                           <div className="relative inline-block">
-  //                             {item.status !== "served" && item.status !== "completed" && (
-  //                               <div className="absolute -top-3 -right-3 bg-gray-500 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center overflow-hidden shadow-md z-10">
-  //                                 <span className="text-center leading-none">
-  //                                   {getOrderPosition(order._id)}
-  //                                 </span>
-  //                               </div>
-  //                             )}
-  //                             <button
-  //                               className={`text-sm px-2 py-1 rounded-xl ${getStatusColor(
-  //                                 order.status
-  //                               )}`}
-  //                               onClick={() => handleOrderStatusChange(table.tableId, order, index)}
-  //                             >
-  //                               {getStatusText(order.status)}
-  //                             </button>
-  //                           </div>
-  //                         )}
-  //                       </div>
-  //                     </div>
-  //                   </li>
-  //                 ))}
-  //               </ul>
-  //             </div>
-  //           ) : (
-  //             <p className="text-sm">주문 없음</p>
-  //           )}
-  //         </div>
-  //         {order && (
-  //           <div className="mt-2 font-bold text-right p-2 border-t border-gray-200">
-  //             총액: {formatNumber(order.totalAmount)}원
-  //           </div>
-  //         )}
-  //       </div>
-  //     );
-  //   },
-  //   [handleCallComplete, handleOrderStatusChange]
-  // );
-  /**
-   *
-   */
 
   if (!restaurant) return <div>Loading...</div>;
 
