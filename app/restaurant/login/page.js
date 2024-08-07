@@ -27,7 +27,7 @@ export default function RestaurantLoginPage() {
         setRestaurantToken(data.token); // Set token in the zustand store
         setRestaurant(data.restaurant); // Set restaurant info in the zustand store
         localStorage.setItem("restaurantToken", data.token); // Optionally store the token in localStorage
-        localStorage.setItem("tables", data.restaurant.tables); // Store number of tables in localStorage
+        localStorage.setItem("tables", data.restaurant.hasTables); // Store number of tables in localStorage
         router.push("/admin"); // Redirect to admin page on successful login
       } else {
         const errorData = await res.json();

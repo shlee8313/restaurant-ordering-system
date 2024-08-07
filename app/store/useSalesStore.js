@@ -1,3 +1,5 @@
+//file: \app\store\useSalesStore.js
+
 import create from "zustand";
 
 const useSalesStore = create((set) => ({

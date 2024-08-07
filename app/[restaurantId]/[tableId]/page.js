@@ -1,3 +1,4 @@
+//file: \app\[restaurantId]\[tableId]\page.js
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -23,9 +24,10 @@ export default function MenuPage() {
   const addOrder = useOrderStore((state) => state.addOrder);
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const socketServerUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL;
 
   const initializeSocket = useCallback(() => {
-    const newSocket = io("http://localhost:5000", {
+    const newSocket = io(socketServerUrl, {
       query: { restaurantId },
     });
 

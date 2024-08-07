@@ -14,7 +14,7 @@ export default function RestaurantRegisterPage() {
   const [businessNumber, setBusinessNumber] = useState("");
   const [operatingHours, setOperatingHours] = useState("");
   const [tables, setTables] = useState("");
-
+  const [hasTables, setHasTables] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
@@ -38,6 +38,7 @@ export default function RestaurantRegisterPage() {
           businessNumber,
           operatingHours,
           tables,
+          hasTables,
         }),
       });
 
@@ -163,18 +164,32 @@ export default function RestaurantRegisterPage() {
           />
         </div>
         <div className="mb-4">
-          <label htmlFor="tables" className="block text-gray-700">
-            테이블 개수
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              name="hasTables"
+              checked={hasTables}
+              onChange={(e) => setHasTables(e.target.checked)}
+              className="mr-2"
+            />
+            {!hasTables ? "테이블 없음" : "테이블 있음"}
           </label>
-          <input
-            type="text"
-            id="tables"
-            value={tables}
-            onChange={(e) => setTables(e.target.value)}
-            className="w-full px-3 py-2 border rounded"
-            required
-          />
         </div>
+        {hasTables && (
+          <div className="mb-4">
+            <label htmlFor="tables" className="block text-gray-700">
+              테이블 개수
+            </label>
+            <input
+              type="text"
+              id="tables"
+              value={tables}
+              onChange={(e) => setTables(e.target.value)}
+              className="w-full px-3 py-2 border rounded"
+              required
+            />
+          </div>
+        )}
         <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded">
           Register
         </button>

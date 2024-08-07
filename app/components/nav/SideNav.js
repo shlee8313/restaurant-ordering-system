@@ -49,25 +49,48 @@ const SideNav = () => {
         </div>
 
         {isSideBarOpen && (
-          <h1 className="text-xl font-bold ml-5">{restaurant?.businessName || "레스토랑"}</h1>
+          <div
+            className="cursor-pointer"
+            onClick={() => {
+              router.push("/admin");
+            }}
+          >
+            <h1 className="text-xl font-bold ml-5 ">{restaurant?.businessName || "레스토랑"}</h1>
+          </div>
         )}
       </div>
       <nav className={`mt-8 ${isSideBarOpen ? "block" : "hidden"}`}>
         {/* <nav className="w-64 bg-gray-100 shadow-lg h-screen p-6"> */}
 
         <ul className="space-y-2">
-          <li>
-            <Link
-              href="/admin/order"
-              className="block p-2 hover:bg-blue-200 rounded"
-              onClick={() => {
-                handleNavClick("주문내역");
-                isEditMode && toggleEditMode();
-              }}
-            >
-              주문내역
-            </Link>
-          </li>
+          {restaurant?.hasTables ? (
+            <li>
+              <Link
+                href="/admin/order"
+                className="block p-2 hover:bg-blue-200 rounded"
+                onClick={() => {
+                  handleNavClick("주문내역");
+                  isEditMode && toggleEditMode();
+                }}
+              >
+                주문내역
+              </Link>
+            </li>
+          ) : (
+            <li>
+              <Link
+                href="/admin/quick-order"
+                className="block p-2 hover:bg-blue-200 rounded"
+                onClick={() => {
+                  handleNavClick("주문내역");
+                  isEditMode && toggleEditMode();
+                }}
+              >
+                주문내역
+              </Link>
+            </li>
+          )}
+
           <li>
             <Link
               href="/admin/sales"

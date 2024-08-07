@@ -1,3 +1,5 @@
+//file: \app\store\usesidebarStore.js
+
 import { create } from "zustand";
 
 const useSidebarStore = create((set) => ({

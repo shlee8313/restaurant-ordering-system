@@ -1,3 +1,5 @@
+//file: \app\store\useTableStore.js
+
 import { create } from "zustand";
 
 const useTableStore = create((set) => ({

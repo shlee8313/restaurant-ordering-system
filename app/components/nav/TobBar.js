@@ -14,7 +14,18 @@ const TopNavigation = () => {
   const { todaySales, setTodaySales } = useSalesStore();
   const { tables } = useTableStore();
   const router = useRouter();
-
+  /**
+   *
+   */
+  useEffect(() => {
+    if (!restaurant) {
+      router.push("/restaurant/login");
+      return;
+    }
+  }, [restaurant]);
+  /**
+   *
+   */
   const handleLogout = () => {
     router.push("/restaurant/login"); // Adjust the path as needed
     fullLogout();
@@ -38,12 +49,12 @@ const TopNavigation = () => {
   };
 
   useEffect(() => {
-    if (restaurant.restaurantId) {
+    if (restaurant?.restaurantId) {
       fetchTodaySales();
 
       // 주기적으로 todaySales 업데이트 (예: 5분마다)
     }
-  }, [restaurant.restaurantId, tables]);
+  }, [restaurant?.restaurantId, tables]);
 
   return (
     <header className="bg-gray-100 shadow-md py-1 pl-5 flex justify-between items-center">

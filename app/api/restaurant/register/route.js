@@ -1,3 +1,5 @@
+//file: \app\api\restaurant\register\route.js
+
 import { NextResponse } from "next/server";
 import dbConnect from "../../../lib/mongoose";
 import Restaurant from "../../../models/Restaurant";
@@ -16,6 +18,7 @@ export async function POST(request) {
       operatingHours,
       tables,
       restaurantId,
+      hasTables,
     } = await request.json();
     console.log(
       password,
@@ -25,16 +28,13 @@ export async function POST(request) {
       businessNumber,
       operatingHours,
       tables,
-      restaurantId
+      restaurantId,
+      hasTables
     );
     if (
-      !email ||
-      !password ||
-      !businessName ||
-      !businessNumber ||
-      !operatingHours ||
-      !restaurantId ||
-      !tables
+      (!email || !password || !businessName || !address,
+      !phoneNumber,
+      !businessNumber || !operatingHours || !restaurantId)
     ) {
       return NextResponse.json({ message: "All fields are required" }, { status: 400 });
     }
@@ -55,6 +55,7 @@ export async function POST(request) {
       operatingHours,
       tables,
       restaurantId,
+      hasTables,
     });
 
     await newRestaurant.save();

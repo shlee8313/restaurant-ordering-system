@@ -1,3 +1,5 @@
+//file: \app\api\restaurant\profile\route.js
+
 import { verifyToken } from "../../lib/jwt";
 import Restaurant from "../../models/Restaurant";
 

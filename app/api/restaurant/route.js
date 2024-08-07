@@ -1,3 +1,5 @@
+//file: \app\api\restaurant\route.js
+
 import { NextResponse } from "next/server";
 import dbConnect from "../../lib/mongoose";
 import Restaurant from "../../models/Restaurant";

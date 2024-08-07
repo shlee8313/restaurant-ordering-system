@@ -1,3 +1,5 @@
+//file: \app\api\tables\route.js
+
 import { NextResponse } from "next/server";
 import dbConnect from "../../lib/mongoose";
 import Table from "../../models/Table";

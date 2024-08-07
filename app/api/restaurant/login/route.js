@@ -1,3 +1,5 @@
+//file: \app\api\restaurant\login\route.js
+
 import { NextResponse } from "next/server";
 import { generateToken } from "../../../lib/jwt";
 import dbConnect from "../../../lib/mongoose";

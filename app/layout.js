@@ -12,30 +12,30 @@ import "react-toastify/dist/ReactToastify.css";
 export default function RootLayout({ children }) {
   const { setUserToken, setUser, setRestaurantToken, setRestaurant } = useAuthStore();
 
-  useEffect(() => {
-    const userToken = localStorage.getItem("userToken");
-    const restaurantToken = localStorage.getItem("restaurantToken");
+  // useEffect(() => {
+  //   const userToken = localStorage.getItem("userToken");
+  //   const restaurantToken = localStorage.getItem("restaurantToken");
 
-    if (userToken) {
-      setUserToken(userToken);
-      fetch("/api/user-profile", {
-        headers: { Authorization: `Bearer ${userToken}` },
-      })
-        .then((res) => res.json())
-        .then((data) => setUser(data))
-        .catch((err) => console.error("Failed to fetch user profile:", err));
-    }
+  //   if (userToken) {
+  //     setUserToken(userToken);
+  //     fetch("/api/user-profile", {
+  //       headers: { Authorization: `Bearer ${userToken}` },
+  //     })
+  //       .then((res) => res.json())
+  //       .then((data) => setUser(data))
+  //       .catch((err) => console.error("Failed to fetch user profile:", err));
+  //   }
 
-    if (restaurantToken) {
-      setRestaurantToken(restaurantToken);
-      fetch("/api/restaurant-profile", {
-        headers: { Authorization: `Bearer ${restaurantToken}` },
-      })
-        .then((res) => res.json())
-        .then((data) => setRestaurant(data))
-        .catch((err) => console.error("Failed to fetch restaurant profile:", err));
-    }
-  }, [setUserToken, setUser, setRestaurantToken, setRestaurant]);
+  //   if (restaurantToken) {
+  //     setRestaurantToken(restaurantToken);
+  //     fetch("/api/restaurant-profile", {
+  //       headers: { Authorization: `Bearer ${restaurantToken}` },
+  //     })
+  //       .then((res) => res.json())
+  //       .then((data) => setRestaurant(data))
+  //       .catch((err) => console.error("Failed to fetch restaurant profile:", err));
+  //   }
+  // }, [setUserToken, setUser, setRestaurantToken, setRestaurant]);
   return (
     <html lang="en">
       <body>

@@ -10,8 +10,9 @@ const restaurantSchema = new mongoose.Schema(
     address: { type: String, required: true },
     phoneNumber: { type: String, required: true },
     businessNumber: { type: String, required: true },
-    operatingHours: { type: String, required: true },
-    tables: { type: Number, required: true },
+    operatingHours: { type: String },
+    hasTables: { type: Boolean, required: true }, // 테이블 유무를 명시하는 필드
+    tables: { type: Number },
     // 추가: orders 필드로 Order 모델과의 관계 설정
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
     // 추가: 메뉴 아이템 필드
