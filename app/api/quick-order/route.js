@@ -1,4 +1,5 @@
 // file: app/api/quick-order/route.js
+// 테이블 있는 식당에서 손님이 주문하게
 import { NextResponse } from "next/server";
 import dbConnect from "../../lib/mongoose";
 import Order from "../../models/Order";

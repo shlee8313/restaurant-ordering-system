@@ -1,7 +1,7 @@
 //file: \app\api\restaurant\profile\route.js
 
-import { verifyToken } from "../../lib/jwt";
-import Restaurant from "../../models/Restaurant";
+// import { verifyToken } from "../../lib/jwt";
+// import Restaurant from "../../models/Restaurant";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
