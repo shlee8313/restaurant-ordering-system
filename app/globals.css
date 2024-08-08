@@ -71,3 +71,12 @@ body {
 .custom-scrollable {
   -ms-overflow-style: none; /* Hide scrollbar on Internet Explorer and Edge */
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

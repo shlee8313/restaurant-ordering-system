@@ -127,20 +127,22 @@ const SideNav = () => {
               메뉴관리
             </Link>
           </li>
-          <li>
-            <Link
-              href="/admin/order"
-              className={`w-full text-left p-2 rounded ${
-                isEditMode ? "bg-red-500 text-white" : "hover:bg-blue-200"
-              }`}
-              onClick={() => {
-                toggleEditMode();
-                handleNavClick(isEditMode ? "주문내역" : "테이블 위치 변경");
-              }}
-            >
-              {isEditMode ? "테이블 위치 편집 종료" : "테이블 위치 변경"}
-            </Link>
-          </li>
+          {restaurant?.hasTables && (
+            <li>
+              <Link
+                href="/admin/order"
+                className={`w-full text-left p-2 rounded ${
+                  isEditMode ? "bg-red-500 text-white" : "hover:bg-blue-200"
+                }`}
+                onClick={() => {
+                  toggleEditMode();
+                  handleNavClick(isEditMode ? "주문내역" : "테이블 위치 변경");
+                }}
+              >
+                {isEditMode ? "테이블 위치 편집 종료" : "테이블 위치 변경"}
+              </Link>
+            </li>
+          )}
           <li>
             <Link
               href=""
@@ -151,6 +153,18 @@ const SideNav = () => {
               }}
             >
               내 정보
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/admin/qr-generate"
+              className="w-full text-left p-2 hover:bg-blue-200 rounded"
+              onClick={() => {
+                handleNavClick("QR코드 생성");
+                isEditMode && toggleEditMode();
+              }}
+            >
+              QR코드 생성
             </Link>
           </li>
         </ul>

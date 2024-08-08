@@ -35,7 +35,9 @@ export default function MenuList({ menu, addToCart, freeOrder, isMobile, connect
             <button
               key={category}
               className={`${
-                isMobile ? "flex-shrink-0 px-4 py-2 mr-2" : "w-full text-left p-2 my-1"
+                isMobile
+                  ? "flex-shrink-0 px-4 py-2 mr-2 whitespace-nowrap"
+                  : "w-full text-left p-2 my-1"
               } rounded ${
                 activeCategory === category ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
               }`}

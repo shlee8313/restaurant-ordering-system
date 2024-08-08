@@ -481,7 +481,7 @@ export default function AdminOrderPage() {
         // 전체 테이블 상태 새로고침
         // await fetchTablesAndOrders();
 
-        toast.success(`주문 상태가 '${newStatus}'로 업데이트되었습니다.`);
+        // toast.success(`주문 상태가 '${newStatus}'로 업데이트되었습니다.`);
       } catch (error) {
         console.error("Error updating order status:", error);
         toast.error(`주문 상태 업데이트에 실패했습니다: ${error.message}`);
@@ -617,7 +617,7 @@ export default function AdminOrderPage() {
         const updatedQueue = orderQueue.filter((order) => order.tableId !== tableId);
         initializeOrderQueue(updatedQueue);
 
-        toast.success(`테이블 ${tableId}의 모든 주문이 완료되었습니다.`);
+        // toast.success(`테이블 ${tableId}의 모든 주문이 완료되었습니다.`);
         fetchTodaySales();
         // 테이블 정보 새로고침
         // await fetchTablesAndOrders();
