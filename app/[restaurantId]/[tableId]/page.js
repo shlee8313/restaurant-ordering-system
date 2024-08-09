@@ -1,7 +1,7 @@
 // app/[restaurantId]/[tableId]/page.js
-import dbConnect from "../../../lib/mongoose";
-import Restaurant from "../../../models/Restaurant";
-import Table from "../../../models/Table";
+import dbConnect from "../../lib/mongoose";
+import Restaurant from "../../models/Restaurant";
+import Table from "../../models/Table";
 import ClientMenuPage from "./ClientMenuPage";
 
 export async function generateStaticParams() {
