@@ -12,7 +12,7 @@ import LoadingSpinner from "../../components/LoadingSpinner";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
-
+export const dynamic = "force-dynamic";
 export default function NoTableMenuPage({ params }) {
   // const { restaurantId } = useParams();
   const { restaurantId } = params;

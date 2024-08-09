@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from "uuid";
  * 
  
  */
+export const dynamic = "force-dynamic";
 export default function MenuPage({ params }) {
   // const { restaurantId, tableId } = useParams();
   const { restaurantId, tableId } = params;
