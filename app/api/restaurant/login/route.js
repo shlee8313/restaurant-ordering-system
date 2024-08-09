@@ -5,7 +5,7 @@ import { generateToken } from "../../../lib/jwt";
 import dbConnect from "../../../lib/mongoose";
 import Restaurant from "../../../models/Restaurant";
 import bcrypt from "bcrypt";
-
+export const dynamic = "force-dynamic";
 export async function POST(req) {
   try {
     await dbConnect();

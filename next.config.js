@@ -1,17 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      };
-    }
-    return config;
-  },
   output: "export",
+  experimental: {
+    appDir: true,
+  },
+  trailingSlash: true,
+  exportPathMap: async function (defaultPathMap, { dev, dir, outDir, distDir, buildId }) {
+    const pathMap = { ...defaultPathMap };
+    delete pathMap["/api/edit_menu"];
+    delete pathMap["/api/menu"];
+    delete pathMap["/api/restaurant"];
+    delete pathMap["/api/sales"];
+    delete pathMap["/api/sales/todaySales"];
+    return pathMap;
+  },
   images: {
     domains: ["via.placeholder.com"],
   },

@@ -6,7 +6,7 @@ import Order from "../../models/Order";
 import Restaurant from "../../models/Restaurant";
 
 import Table from "../../models/Table";
-
+export const dynamic = "force-dynamic";
 export async function GET(req) {
   try {
     await dbConnect();

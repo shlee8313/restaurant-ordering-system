@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "../../lib/mongoose";
 import Order from "../../models/Order";
 import Restaurant from "../../models/Restaurant";
-
+export const dynamic = "force-dynamic";
 export async function GET(req) {
   try {
     await dbConnect();

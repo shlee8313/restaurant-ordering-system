@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "../../lib/mongoose";
 import Restaurant from "../../models/Restaurant";
-
+export const dynamic = "force-dynamic";
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const restaurantId = searchParams.get("restaurantId");

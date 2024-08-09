@@ -7,7 +7,7 @@ import Restaurant from "../../models/Restaurant";
 import jwt from "jsonwebtoken";
 
 const SECRET_KEY = process.env.JWT_SECRET_KEY; // Ensure you have this in your environment variables
-
+export const dynamic = "force-dynamic";
 export async function GET(req) {
   try {
     await dbConnect();

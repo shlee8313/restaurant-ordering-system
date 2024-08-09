@@ -2,7 +2,7 @@
 
 // import { verifyToken } from "../../lib/jwt";
 // import Restaurant from "../../models/Restaurant";
-
+export const dynamic = "force-dynamic";
 export default async function handler(req, res) {
   if (req.method === "GET") {
     const token = req.headers.authorization?.split(" ")[1];
