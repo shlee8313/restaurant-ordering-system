@@ -10,8 +10,9 @@ import { ObjectId } from "mongodb"; // 파일 상단에 추가
 /**
  *
  */
+export const dynamic = "force-dynamic";
 // GET: 테이블 정보 가져오기
-// export const dynamic = "force-dynamic";
+//
 export async function GET(req) {
   try {
     // console.log("Received GET request:", req.url);
