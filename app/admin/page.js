@@ -2,10 +2,10 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import useAuthStore from "../store/useAuthStore";
 function page() {
-  const router = useRouter();
+  // const router = useRouter();
   const { restaurant, restaurantToken, refreshToken } = useAuthStore();
   console.log(restaurant?.hasTables);
   // useEffect(() => {
