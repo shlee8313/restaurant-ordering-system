@@ -10,6 +10,38 @@ import LoadingSpinner from "../../components/LoadingSpinner";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
+import dbConnect from "../../lib/mongoose";
+import Restaurant from "../../models/Restaurant";
+import Table from "../../models/Table";
+
+export async function generateStaticParams() {
+  try {
+    await dbConnect();
+
+    // 테이블이 있는 레스토랑만 가져옵니다.
+    const restaurants = await Restaurant.find({ hasTables: true }, "restaurantId");
+
+    const paths = [];
+
+    for (const restaurant of restaurants) {
+      // 각 레스토랑의 테이블을 가져옵니다.
+      const tables = await Table.find({ restaurantId: restaurant.restaurantId }, "tableId");
+
+      // 각 테이블에 대한 경로를 생성합니다.
+      const restaurantPaths = tables.map((table) => ({
+        restaurantId: restaurant.restaurantId,
+        tableId: table.tableId.toString(),
+      }));
+
+      paths.push(...restaurantPaths);
+    }
+
+    return paths;
+  } catch (error) {
+    console.error("Failed to fetch restaurants and tables for static paths:", error);
+    return [];
+  }
+}
 /**
  * 
  
