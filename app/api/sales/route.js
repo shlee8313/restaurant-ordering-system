@@ -3,7 +3,10 @@
 import { NextResponse } from "next/server";
 import dbConnect from "../../lib/mongoose";
 import Order from "../../models/Order";
-export const dynamic = "force-dynamic";
+/**
+ *
+ */
+// export const dynamic = "force-dynamic";
 export async function GET(req) {
   console.log("Sales API called");
 
